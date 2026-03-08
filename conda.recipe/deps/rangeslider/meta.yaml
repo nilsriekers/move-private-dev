@@ -1,0 +1,41 @@
+{% set python_min = "3.9" %}
+{% set version = "2023.7.2" %}
+
+package:
+  name: rangeslider
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/rangeslider/RangeSlider-{{ version }}.tar.gz
+  sha256: 6ad39340b0a848dc516d0ac9e8796951c4fb295511717ac67d56694566660f9d
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python {{ python_min }}.*
+    - pip
+  run:
+    - python >={{ python_min }}
+
+test:
+  imports:
+    - RangeSlider
+  commands:
+    - pip check
+  requires:
+    - pip
+    - python {{ python_min }}.*
+
+about:
+  home: https://github.com/harshvinay752/RangeSlider
+  summary: Python tkinter widget for range selection in slider widget structure with two handles
+  license: MIT
+  license_file: PLEASE_ADD_LICENSE_FILE
+
+extra:
+  recipe-maintainers:
+    - AddYourGitHubIdHere
