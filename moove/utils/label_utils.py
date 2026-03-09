@@ -3,15 +3,17 @@ import os
 import pandas as pd
 import pickle
 import threading
-import tkinter as tk
-import tkinter.font as tkFont
 import torch
 import torch.nn.functional as F
 import evfuncs
 import re
 from scipy.signal import spectrogram
-from tkinter import ttk, messagebox
 import numpy as np
+
+from PyQt6.QtWidgets import QMessageBox, QProgressBar, QLabel, QApplication
+from PyQt6.QtGui import QFont
+
+from moove.qt_helpers import invoke_in_main_thread
 
 
 def load_classification_checkmarks(all_files):
@@ -31,17 +33,16 @@ def load_classification_checkmarks(all_files):
     return unclass_files
 
 
-def start_create_classification_training_dataset(app_state, dataset_name, use_selected_files, selection, batch_file, bird_combobox, experiment_combobox, day_combobox, root):
+def start_create_classification_training_dataset(app_state, dataset_name, use_selected_files, selection, batch_file, bird, experiment, day, parent):
     """Initialize the creation of a classification training dataset in a new thread."""
     from moove.utils import get_files_for_day, get_files_for_experiment, get_files_for_bird, filter_classified_files
-    
-    font_style = tkFont.Font(family="Arial", size=14)
-    running_label = tk.Label(app_state.training_window, text="Looking for files...", fg="green", font=font_style)
-    running_label.grid(row=22, column=0, columnspan=2, pady=(10, 0), sticky=tk.W) 
-    root.update_idletasks() 
 
-    # choose files depending on the user selection
-    bird, experiment, day = bird_combobox.get(), experiment_combobox.get(), day_combobox.get()
+    win = app_state.training_window
+    if hasattr(win, 'status_label'):
+        win.status_label.setText("Looking for files...")
+        win.status_label.show()
+        QApplication.processEvents()
+
     if selection == "current_day":
         files = get_files_for_day(app_state, bird, experiment, day, batch_file)
     elif selection == "current_experiment":
@@ -51,69 +52,72 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
 
     if use_selected_files:
         files = filter_classified_files(files)
-        
-    running_label.destroy()
-    root.update_idletasks() 
+
+    if hasattr(win, 'status_label'):
+        win.status_label.hide()
+        QApplication.processEvents()
 
     dataset_name = str(dataset_name)
-    # check if dataset name is valid
     if len(dataset_name) < 1:
-        messagebox.showinfo("Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
+        QMessageBox.information(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
     else:
-        # create dataset with valid name
-        max_value = len(files)
-        progressbar = ttk.Progressbar(app_state.training_window, orient=tk.HORIZONTAL, length=200, mode='determinate', maximum=max_value)
-        progressbar.grid(row=22, column=0, columnspan=2, pady=(10, 0), sticky="ew")
+        progressbar = QProgressBar()
+        progressbar.setMaximum(len(files))
+        if hasattr(win, 'progressbar'):
+            win.progressbar.hide()
+        win.progressbar = progressbar
+        win.layout().addWidget(progressbar)
+        progressbar.show()
 
-        # Create wrapper function for thread management
         def thread_wrapper():
             current_thread = threading.current_thread()
             try:
-                create_classification_training_dataset(app_state, progressbar, dataset_name, files, root)
+                create_classification_training_dataset(app_state, progressbar, dataset_name, files, parent)
             finally:
                 app_state.remove_thread(current_thread)
-        
+
         thread = threading.Thread(target=thread_wrapper, name="CreateClassDatasetThread")
         app_state.add_thread(thread)
         thread.start()
 
 
-def create_classification_training_dataset(app_state, progressbar, dataset_name, files, root):
+def create_classification_training_dataset(app_state, progressbar, dataset_name, files, parent):
     """Create a classification training dataset based on selected files and parameters."""
     from moove.utils import get_display_data, seconds_to_index
 
     if len(files) == 0:
-        messagebox.showinfo("Error", "Not enough files given! You need at least 1 file to create a dataset.")
+        invoke_in_main_thread(lambda: QMessageBox.information(
+            parent, "Error", "Not enough files given! You need at least 1 file to create a dataset."))
         return
 
     input_length_str = app_state.spec_params['input_length'].get()
     input_length, chunk_size = map(int, input_length_str.split(','))
-    nperseg, noverlap, nfft = int(app_state.spec_params['nperseg'].get()), int(app_state.spec_params['noverlap'].get()), int(app_state.spec_params['nfft'].get())
+    nperseg = int(app_state.spec_params['nperseg'].get())
+    noverlap = int(app_state.spec_params['noverlap'].get())
+    nfft = int(app_state.spec_params['nfft'].get())
     freq_cutoffs = tuple(map(int, app_state.spec_params['freq_cutoffs'].get().split(',')))
     input_array_size = input_length * chunk_size
-    
+
     going_prod_df = pd.DataFrame(columns=['file', 'onset_no', 'taf_unflattend_spectrogram', 'label'])
     entry_no = 0
 
-    progressbar.grid_remove()
+    invoke_in_main_thread(progressbar.hide)
 
-    # Add running label to the GUI
-    font_style = tkFont.Font(family="Arial", size=14)
-    running_label = tk.Label(app_state.training_window, text="Looking for syllables...", fg="green", font=font_style)
-    running_label.grid(row=22, column=0, columnspan=2, pady=(10, 0), sticky=tk.W) 
-    root.update_idletasks() 
+    def _show_looking():
+        if hasattr(app_state.training_window, 'status_label'):
+            app_state.training_window.status_label.setText("Looking for syllables...")
+            app_state.training_window.status_label.show()
+    invoke_in_main_thread(_show_looking)
 
     def get_onsets(file_path):
         notmat_file = file_path + ".not.mat"
         if os.path.exists(notmat_file):
             notmat_dict = evfuncs.load_notmat(notmat_file)
             return notmat_dict.get("onsets", [])
-        else:
-            return []
-    
-    # Count number of syllable onsets    
+        return []
+
     num_onsets = 0
-    for i, file_i in enumerate(files):
+    for file_i in files:
         working_dir = os.getcwd()
         file_path = os.path.join(working_dir, file_i)
         onsets = get_onsets(file_path)
@@ -121,17 +125,19 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
             num_onsets += len(onsets)
 
     if num_onsets == 0:
-        running_label.destroy()
-        root.update_idletasks() 
-        messagebox.showinfo("Error", "No syllable onsets found in the given files.")
+        invoke_in_main_thread(lambda: (
+            app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label') else None,
+            QMessageBox.information(parent, "Error", "No syllable onsets found in the given files.")))
         return
 
-    running_label.destroy()
-    root.update_idletasks() 
-    progressbar.grid()
+    def _hide_show_progress():
+        if hasattr(app_state.training_window, 'status_label'):
+            app_state.training_window.status_label.hide()
+        progressbar.show()
+    invoke_in_main_thread(_hide_show_progress)
 
     for i, file_i in enumerate(files):
-        app_state.training_window.update_idletasks()
+        invoke_in_main_thread(lambda: QApplication.processEvents())
         working_dir = os.getcwd()
         file_path = os.path.join(working_dir, file_i)
         file_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path}, app_state.config)
@@ -139,13 +145,12 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
         rawsong, onsets, labels = file_data["song_data"], file_data["onsets"], file_data["labels"]
 
         if len(onsets) > 0:
-            progressbar['value'] = i
+            invoke_in_main_thread(progressbar.setValue, i)
             for syllable_no, onset in enumerate(onsets):
                 entry_no += 1
                 onset_index = int(seconds_to_index(onset, sampling_rate))
                 cutted_raw_song = rawsong[onset_index:onset_index + input_array_size]
 
-                # Ensure consistent shape by setting nperseg and noverlap
                 f, t, Sxx_taf = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg, noverlap=noverlap, nfft=nfft)
                 if Sxx_taf.ndim == 2:
                     Sxx_taf = Sxx_taf[(f >= freq_cutoffs[0]) & (f <= freq_cutoffs[1]), :]
@@ -169,32 +174,27 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
         pickle.dump({'dataframe': going_prod_df, 'metadata': metadata}, f)
 
     app_state.update_classification_datasets_combobox()
-    progressbar['value'] = len(files)
-    progressbar.grid_forget()
-    
-    # Schedule Tkinter operations in the main thread
-    def show_message():
-        messagebox.showinfo("Info", "Classification training dataset has been created successfully!")
-    
-    root.after(0, show_message)
+    invoke_in_main_thread(progressbar.setValue, len(files))
+    invoke_in_main_thread(progressbar.hide)
+
+    invoke_in_main_thread(lambda: QMessageBox.information(
+        parent, "Info", "Classification training dataset has been created successfully!"))
 
     first_index = going_prod_df.index[0]
     shape_first_entry = pd.DataFrame(going_prod_df.loc[first_index, 'taf_unflattend_spectrogram']).shape
     app_state.logger.debug(f"The shape of the first entry in 'taf_unflattend_spectrogram' is {shape_first_entry}")
 
 
-def normalize_spectrogram(spectrogram):
+def normalize_spectrogram(spectrogram_data):
     """Normalize the spectrogram to zero mean and unit variance."""
-    mean, std = spectrogram.mean(), spectrogram.std()
-    return (spectrogram - mean) / std if std != 0 else spectrogram
+    mean, std = spectrogram_data.mean(), spectrogram_data.std()
+    return (spectrogram_data - mean) / std if std != 0 else spectrogram_data
 
 
-def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, batch_file, bird_combobox, experiment_combobox, day_combobox):
+def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, batch_file, bird, experiment, day):
     """Start the classification process for selected files in a new thread."""
     from moove.utils import get_files_for_day, get_files_for_experiment, get_files_for_bird, get_file_data_by_index
 
-    bird, experiment, day = bird_combobox.get(), experiment_combobox.get(), day_combobox.get()
-    # Choose files depending on the user selection
     if selection == "current_day":
         files = get_files_for_day(app_state, bird, experiment, day, batch_file)
     elif selection == "current_experiment":
@@ -207,30 +207,29 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     try:
         checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'), map_location=device)
-    except: 
-        messagebox.showinfo("Error", "Selected classification model doesn't exist or is not valid! Perhaps you forgot to pick a model?")
+    except:
+        QMessageBox.information(app_state.relabel_window, "Error", "Selected classification model doesn't exist or is not valid! Perhaps you forgot to pick a model?")
+        return
     model, metadata = checkpoint['model'], checkpoint['metadata']
 
     model.to(device).eval()
 
-    if checkbox_ow:
-        files = files
-    else:
-        # use non-manually classified files only
+    if not checkbox_ow:
         files = load_classification_checkmarks(files)
 
-    max_value = len(files)
-    progressbar = ttk.Progressbar(app_state.relabel_window, orient=tk.HORIZONTAL, length=200, mode='determinate', maximum=max_value)
-    progressbar.grid(row=22, column=0, columnspan=2, pady=(10, 0), sticky="ew")
-    
-    # Create wrapper function for thread management
+    win = app_state.relabel_window
+    progressbar = QProgressBar()
+    progressbar.setMaximum(len(files))
+    win.layout().addWidget(progressbar)
+    progressbar.show()
+
     def thread_wrapper():
         current_thread = threading.current_thread()
         try:
-            ml_classify_file(app_state, progressbar, max_value, files, model, metadata, device)
+            ml_classify_file(app_state, progressbar, len(files), files, model, metadata, device)
         finally:
             app_state.remove_thread(current_thread)
-    
+
     thread = threading.Thread(target=thread_wrapper, name="ClassifyFilesThread")
     app_state.add_thread(thread)
     thread.start()
@@ -240,7 +239,6 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     """Perform classification on each file and update labels."""
     from moove.utils import get_display_data, plot_data, save_notmat, seconds_to_index
 
-    # Store the complete original file context to restore it later
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
@@ -252,15 +250,13 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
     for i, file_i in enumerate(all_files):
         try:
-            progressbar['value'] = i
-            app_state.relabel_window.update_idletasks()
+            invoke_in_main_thread(progressbar.setValue, i)
             file_data = get_display_data({"file_name": os.path.basename(file_i), "file_path": file_i}, app_state.config)
             sampling_rate, rawsong, onsets = int(file_data["sampling_rate"]), file_data["song_data"], file_data["onsets"]
             app_state.data_dir = os.path.dirname(file_i)
 
             labels = []
 
-            # Classify syllables in selected files
             for onset in onsets:
                 onset_index = int(seconds_to_index(onset, sampling_rate))
                 cutted_raw_song = rawsong[onset_index:onset_index + input_array_size]
@@ -279,25 +275,19 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
             file_data["labels"] = ''.join(labels)
             save_notmat(os.path.join(app_state.data_dir, f"{file_data['file_name']}.not.mat"), file_data)
-            
+
         except Exception as e:
-            app_state.info(f"File {file_i} could not be processed correctly: {e}. Check manually.")
+            app_state.logger.error(f"File {file_i} could not be processed correctly: {e}. Check manually.")
             return
 
-    # Restore the complete original file context
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
 
-    progressbar['value'] = len(all_files)
-    
-    # Final UI update
+    invoke_in_main_thread(progressbar.setValue, len(all_files))
+
     app_state.reset_edit_type()
-    plot_data(app_state)
-    progressbar.grid_forget()
-    
-    # Schedule Tkinter operations in the main thread
-    def show_message():
-        messagebox.showinfo("Info", f"Relabeling of files completed successfully!")
-    
-    app_state.relabel_window.after(0, show_message)
+    invoke_in_main_thread(plot_data, app_state)
+    invoke_in_main_thread(progressbar.hide)
+    invoke_in_main_thread(lambda: QMessageBox.information(
+        app_state.relabel_window, "Info", "Relabeling of files completed successfully!"))
