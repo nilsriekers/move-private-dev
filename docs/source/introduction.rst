@@ -11,8 +11,6 @@ Introduction
 
 Authors: Franziska Heubach, Jacqueline Göbl
 
-Published:
-
 The following pages will provide you with guided explanations for using MooveTaf and MooveGUI. Following the instructions step-by-step should give you a nice introduction into all possible ways to use Moove.
 
 If you find yourself having any questions unanswered or you want to share suggestions, feel free to check out our Github: https://github.com/veitlab/moove
