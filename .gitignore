@@ -10,3 +10,6 @@ __pycache__/
 venv/
 .venv/
 .idea/
+docs/build/
+docs/guide_raw.rst
+docs/_static/
