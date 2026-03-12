@@ -10,8 +10,7 @@ import re
 from scipy.signal import spectrogram
 import numpy as np
 
-from PyQt6.QtWidgets import QMessageBox, QProgressBar, QLabel, QApplication
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QMessageBox, QApplication
 
 from moove.qt_helpers import invoke_in_main_thread
 
@@ -61,12 +60,9 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
     if len(dataset_name) < 1:
         QMessageBox.information(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
     else:
-        progressbar = QProgressBar()
+        progressbar = win.progressbar
         progressbar.setMaximum(len(files))
-        if hasattr(win, 'progressbar'):
-            win.progressbar.hide()
-        win.progressbar = progressbar
-        win.layout().addWidget(progressbar)
+        progressbar.setValue(0)
         progressbar.show()
 
         def thread_wrapper():
@@ -218,9 +214,9 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
         files = load_classification_checkmarks(files)
 
     win = app_state.relabel_window
-    progressbar = QProgressBar()
+    progressbar = win.progressbar
     progressbar.setMaximum(len(files))
-    win.layout().addWidget(progressbar)
+    progressbar.setValue(0)
     progressbar.show()
 
     def thread_wrapper():

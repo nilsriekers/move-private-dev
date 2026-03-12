@@ -7,9 +7,7 @@ import threading
 import torch
 import re
 
-from PyQt6.QtWidgets import QMessageBox, QProgressBar, QLabel, QApplication
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QMessageBox, QApplication
 
 from moove.qt_helpers import invoke_in_main_thread
 
@@ -44,12 +42,9 @@ def start_segment_evfuncs(app_state, selection, batch_file, bird, experiment, da
         files = [get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)["file_path"]]
 
     win = app_state.resegment_window
-    progressbar = QProgressBar()
+    progressbar = win.progressbar
     progressbar.setMaximum(len(files))
-    if hasattr(win, 'progressbar'):
-        win.progressbar.hide()
-    win.progressbar = progressbar
-    win.layout().addWidget(progressbar)
+    progressbar.setValue(0)
     progressbar.show()
 
     def thread_wrapper():
@@ -346,9 +341,9 @@ def start_segment_files_thread(app_state, segmentation_model_name, selection, ch
         files = load_segmentation_checkmarks(files)
 
     win = app_state.resegment_window
-    progressbar = QProgressBar()
+    progressbar = win.progressbar
     progressbar.setMaximum(len(files))
-    win.layout().addWidget(progressbar)
+    progressbar.setValue(0)
     progressbar.show()
 
     def thread_wrapper():
@@ -384,12 +379,9 @@ def start_create_segmentation_training_dataset(app_state, dataset_name, use_sele
         return
 
     win = app_state.training_window
-    progressbar = QProgressBar()
+    progressbar = win.progressbar
     progressbar.setMaximum(len(files))
-    if hasattr(win, 'progressbar'):
-        win.progressbar.hide()
-    win.progressbar = progressbar
-    win.layout().addWidget(progressbar)
+    progressbar.setValue(0)
     progressbar.show()
 
     def thread_wrapper():

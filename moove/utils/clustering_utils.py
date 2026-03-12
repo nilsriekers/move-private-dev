@@ -14,11 +14,7 @@ from scipy.signal import spectrogram
 from sklearn.cluster import KMeans
 from umap import UMAP
 
-from PyQt6.QtWidgets import (
-    QMessageBox, QProgressBar, QLabel, QApplication, QDialog,
-    QVBoxLayout, QWidget
-)
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QMessageBox, QApplication, QDialog, QVBoxLayout
 
 from moove.qt_helpers import invoke_in_main_thread
 
@@ -48,12 +44,9 @@ def start_create_cluster_dataset_thread(app_state, dataset_name, use_selected_fi
         QMessageBox.information(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
     else:
         win = app_state.cluster_window
-        progressbar = QProgressBar()
+        progressbar = win.progressbar
         progressbar.setMaximum(len(files))
-        if hasattr(win, 'progressbar'):
-            win.progressbar.hide()
-        win.progressbar = progressbar
-        win.layout().addWidget(progressbar)
+        progressbar.setValue(0)
         progressbar.show()
 
         def thread_wrapper():
@@ -291,9 +284,9 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     app_state.logger.debug("Starting replacement of syllables with dataset %s", dataset_name)
 
     win = app_state.cluster_window
-    progressbar = QProgressBar()
+    progressbar = win.progressbar
     progressbar.setMaximum(len(files))
-    win.layout().addWidget(progressbar)
+    progressbar.setValue(0)
     progressbar.show()
 
     for i, file in enumerate(files):

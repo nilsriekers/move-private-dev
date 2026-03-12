@@ -542,6 +542,14 @@ class MooveMainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+
+    pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    for name in ("logo_128_white_bg_small.png", "logo.png"):
+        icon_path = os.path.join(pkg_dir, "templates", name)
+        if os.path.exists(icon_path):
+            app.setWindowIcon(QIcon(icon_path))
+            break
+
     window = MooveMainWindow()
     window.resize(1200, 600)
     window.show()

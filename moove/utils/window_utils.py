@@ -21,6 +21,21 @@ def _btn(text, callback=None):
     return b
 
 
+def _set_dlg_icon(dlg):
+    """Copy the application-level icon onto a dialog so child message boxes inherit it."""
+    app = dlg.parent()
+    while app is not None and hasattr(app, 'windowIcon'):
+        icon = app.windowIcon()
+        if not icon.isNull():
+            dlg.setWindowIcon(icon)
+            return
+        app = app.parent() if hasattr(app, 'parent') else None
+    from PyQt6.QtWidgets import QApplication
+    app_icon = QApplication.instance().windowIcon()
+    if not app_icon.isNull():
+        dlg.setWindowIcon(app_icon)
+
+
 def _get_bird_exp_day(app_state):
     """Read current bird/experiment/day from the stored comboboxes."""
     b = app_state.bird_combobox.currentText() if app_state.bird_combobox else ""
@@ -38,16 +53,20 @@ def open_resegment_window(parent, app_state):
     dlg = QDialog(parent)
     dlg.setWindowTitle("Resegmentation")
     dlg.resize(700, 450)
+    _set_dlg_icon(dlg)
     app_state.resegment_window = dlg
 
-    outer = QHBoxLayout(dlg)
-    outer.setAlignment(Qt.AlignmentFlag.AlignTop)
+    root = QVBoxLayout(dlg)
+    root.setContentsMargins(6, 2, 6, 6)
+    panels = QHBoxLayout()
+    panels.setAlignment(Qt.AlignmentFlag.AlignTop)
+    root.addLayout(panels, stretch=1)
 
     # --- Left: Evfuncs ---
     left = QGridLayout()
     left_w = QWidget(); left_w.setLayout(left)
     left_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-    outer.addWidget(left_w, alignment=Qt.AlignmentFlag.AlignTop)
+    panels.addWidget(left_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     left.addWidget(QLabel("<b style='font-size:16px'>Evfuncs</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -98,7 +117,7 @@ def open_resegment_window(parent, app_state):
     right = QGridLayout()
     right_w = QWidget(); right_w.setLayout(right)
     right_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-    outer.addWidget(right_w, alignment=Qt.AlignmentFlag.AlignTop)
+    panels.addWidget(right_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     right.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -169,10 +188,9 @@ def open_resegment_window(parent, app_state):
 
     btn_ml = _btn("Segment", _do_ml_segment)
     right.addWidget(btn_ml, row, 0, 1, 2)
-    row += 1
-    right.addWidget(dlg.status_label, row, 0, 1, 2)
-    row += 1
-    right.addWidget(dlg.progressbar, row, 0, 1, 2)
+
+    root.addWidget(dlg.status_label)
+    root.addWidget(dlg.progressbar)
 
     dlg.show()
 
@@ -186,9 +204,11 @@ def open_relabel_window(parent, app_state):
     dlg = QDialog(parent)
     dlg.setWindowTitle("Relabel")
     dlg.resize(400, 350)
+    _set_dlg_icon(dlg)
     app_state.relabel_window = dlg
 
     outer = QVBoxLayout(dlg)
+    outer.setContentsMargins(6, 2, 6, 6)
     grid = QGridLayout()
     outer.addLayout(grid)
     outer.addStretch()
@@ -246,10 +266,9 @@ def open_relabel_window(parent, app_state):
 
     btn = _btn("Relabel", _do_relabel)
     grid.addWidget(btn, row, 0, 1, 2)
-    row += 1
-    grid.addWidget(dlg.status_label, row, 0, 1, 2)
-    row += 1
-    grid.addWidget(dlg.progressbar, row, 0, 1, 2)
+
+    outer.addWidget(dlg.status_label)
+    outer.addWidget(dlg.progressbar)
 
     dlg.show()
 
@@ -267,16 +286,20 @@ def open_training_window(parent, app_state):
     dlg = QDialog(parent)
     dlg.setWindowTitle("Training")
     dlg.resize(700, 560)
+    _set_dlg_icon(dlg)
     app_state.training_window = dlg
 
-    outer = QHBoxLayout(dlg)
-    outer.setAlignment(Qt.AlignmentFlag.AlignTop)
+    root = QVBoxLayout(dlg)
+    root.setContentsMargins(6, 2, 6, 6)
+    panels = QHBoxLayout()
+    panels.setAlignment(Qt.AlignmentFlag.AlignTop)
+    root.addLayout(panels, stretch=1)
 
     # ---- Left: Segmentation ----
     left = QGridLayout()
     left_w = QWidget(); left_w.setLayout(left)
     left_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-    outer.addWidget(left_w, alignment=Qt.AlignmentFlag.AlignTop)
+    panels.addWidget(left_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     left.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -360,7 +383,7 @@ def open_training_window(parent, app_state):
     right = QGridLayout()
     right_w = QWidget(); right_w.setLayout(right)
     right_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-    outer.addWidget(right_w, alignment=Qt.AlignmentFlag.AlignTop)
+    panels.addWidget(right_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     right.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -443,12 +466,8 @@ def open_training_window(parent, app_state):
     dlg.progressbar = QProgressBar()
     dlg.progressbar.hide()
 
-    status_row = QHBoxLayout()
-    status_row.addWidget(dlg.status_label)
-    status_row.addWidget(dlg.progressbar)
-    # Add to bottom of left side
-    left.addWidget(dlg.status_label, 99, 0, 1, 2)
-    left.addWidget(dlg.progressbar, 100, 0, 1, 2)
+    root.addWidget(dlg.status_label)
+    root.addWidget(dlg.progressbar)
 
     dlg.show()
 
@@ -466,9 +485,11 @@ def open_cluster_window(parent, app_state):
     dlg = QDialog(parent)
     dlg.setWindowTitle("Cluster")
     dlg.resize(400, 580)
+    _set_dlg_icon(dlg)
     app_state.cluster_window = dlg
 
     outer = QVBoxLayout(dlg)
+    outer.setContentsMargins(6, 2, 6, 6)
     grid = QGridLayout()
     outer.addLayout(grid)
     outer.addStretch()
@@ -558,7 +579,7 @@ def open_cluster_window(parent, app_state):
     dlg.status_label.hide()
     dlg.progressbar = QProgressBar()
     dlg.progressbar.hide()
-    grid.addWidget(dlg.status_label, row, 0, 1, 2); row += 1
-    grid.addWidget(dlg.progressbar, row, 0, 1, 2)
+    outer.addWidget(dlg.status_label)
+    outer.addWidget(dlg.progressbar)
 
     dlg.show()
