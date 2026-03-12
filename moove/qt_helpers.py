@@ -78,7 +78,7 @@ class QRangeSliderV(QWidget):
 
     _TRACK_WIDTH = 6
     _HANDLE_RADIUS = 9
-    _MARGIN = 28
+    _MARGIN = 14
 
     def __init__(self, min_val, max_val, bottom_val, top_val, parent=None):
         super().__init__(parent)
@@ -159,14 +159,12 @@ class QRangeSliderV(QWidget):
             p.drawEllipse(int(cx - self._HANDLE_RADIUS), int(y_pos - self._HANDLE_RADIUS),
                           self._HANDLE_RADIUS * 2, self._HANDLE_RADIUS * 2)
 
-        # value labels
+        # value labels (right of handles, vertically centered on dot)
         p.setPen(QColor(0, 0, 0))
-        top_text = f"{self._top:.0f}"
-        bot_text = f"{self._bottom:.0f}"
-        p.drawText(cx - fm.horizontalAdvance(top_text) // 2,
-                   int(y_top - self._HANDLE_RADIUS - 6), top_text)
-        p.drawText(cx - fm.horizontalAdvance(bot_text) // 2,
-                   int(y_bot + self._HANDLE_RADIUS + fm.height() + 2), bot_text)
+        label_x = cx + self._HANDLE_RADIUS + 6
+        text_y_offset = fm.ascent() // 2 - 1
+        p.drawText(label_x, int(y_top + text_y_offset), f"{self._top:.0f}")
+        p.drawText(label_x, int(y_bot + text_y_offset), f"{self._bottom:.0f}")
 
         p.end()
 

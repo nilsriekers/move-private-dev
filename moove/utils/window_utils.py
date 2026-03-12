@@ -203,7 +203,6 @@ def open_relabel_window(parent, app_state):
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Relabel")
-    dlg.resize(400, 280)
     _set_dlg_icon(dlg)
     app_state.relabel_window = dlg
 
@@ -211,7 +210,6 @@ def open_relabel_window(parent, app_state):
     outer.setContentsMargins(8, 8, 8, 8)
     grid = QGridLayout()
     outer.addLayout(grid)
-    outer.addStretch()
     row = 0
     grid.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
     row += 1
@@ -270,6 +268,8 @@ def open_relabel_window(parent, app_state):
     outer.addWidget(dlg.status_label)
     outer.addWidget(dlg.progressbar)
 
+    dlg.adjustSize()
+    dlg.setFixedHeight(dlg.sizeHint().height())
     dlg.show()
 
 
