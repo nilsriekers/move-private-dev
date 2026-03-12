@@ -274,10 +274,8 @@ class MooveMainWindow(QMainWindow):
         s = self.app_state
         plot_row = QHBoxLayout()
 
-        screen = QApplication.primaryScreen()
-        dpr = screen.devicePixelRatio() if screen else 1.0
         self.fig, (self.ax1, self.ax2, self.ax3) = plt.subplots(
-            3, 1, figsize=(9, 5.5), dpi=100 * dpr,
+            3, 1, figsize=(9, 5.5),
             gridspec_kw={'height_ratios': [6, 1, 6]}, sharex=True)
 
         self.canvas = FigureCanvasQTAgg(self.fig)
