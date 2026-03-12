@@ -3,12 +3,22 @@ import os
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QComboBox, QPushButton, QCheckBox, QRadioButton, QButtonGroup,
-    QProgressBar, QWidget,
+    QProgressBar, QWidget, QSizePolicy,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from moove.app_state import Var, BoolVar
+
+
+def _btn(text, callback=None):
+    """Create a QPushButton with autoDefault disabled (avoids blue highlight on macOS)."""
+    b = QPushButton(text)
+    b.setAutoDefault(False)
+    b.setDefault(False)
+    if callback:
+        b.clicked.connect(callback)
+    return b
 
 
 def _get_bird_exp_day(app_state):
@@ -31,11 +41,13 @@ def open_resegment_window(parent, app_state):
     app_state.resegment_window = dlg
 
     outer = QHBoxLayout(dlg)
+    outer.setAlignment(Qt.AlignmentFlag.AlignTop)
 
     # --- Left: Evfuncs ---
     left = QGridLayout()
     left_w = QWidget(); left_w.setLayout(left)
-    outer.addWidget(left_w)
+    left_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+    outer.addWidget(left_w, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     left.addWidget(QLabel("<b style='font-size:16px'>Evfuncs</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -79,14 +91,14 @@ def open_resegment_window(parent, app_state):
         b, e, d = _get_bird_exp_day(app_state)
         start_segment_evfuncs(app_state, ev_sel.get(), ev_batch_combo.currentText(), b, e, d)
 
-    btn_ev = QPushButton("Segment")
-    btn_ev.clicked.connect(_do_ev_segment)
+    btn_ev = _btn("Segment", _do_ev_segment)
     left.addWidget(btn_ev, row, 0, 1, 2)
 
     # --- Right: Segmentation Network ---
     right = QGridLayout()
     right_w = QWidget(); right_w.setLayout(right)
-    outer.addWidget(right_w)
+    right_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+    outer.addWidget(right_w, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     right.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -155,8 +167,7 @@ def open_resegment_window(parent, app_state):
                                    overwrite_cb.isChecked(), sm_batch_combo.currentText(),
                                    b, e, d)
 
-    btn_ml = QPushButton("Segment")
-    btn_ml.clicked.connect(_do_ml_segment)
+    btn_ml = _btn("Segment", _do_ml_segment)
     right.addWidget(btn_ml, row, 0, 1, 2)
     row += 1
     right.addWidget(dlg.status_label, row, 0, 1, 2)
@@ -174,10 +185,13 @@ def open_relabel_window(parent, app_state):
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Relabel")
-    dlg.resize(400, 300)
+    dlg.resize(400, 350)
     app_state.relabel_window = dlg
 
-    grid = QGridLayout(dlg)
+    outer = QVBoxLayout(dlg)
+    grid = QGridLayout()
+    outer.addLayout(grid)
+    outer.addStretch()
     row = 0
     grid.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
     row += 1
@@ -230,8 +244,7 @@ def open_relabel_window(parent, app_state):
                                     overwrite_cb.isChecked(), batch_combo.currentText(),
                                     b, e, d)
 
-    btn = QPushButton("Relabel")
-    btn.clicked.connect(_do_relabel)
+    btn = _btn("Relabel", _do_relabel)
     grid.addWidget(btn, row, 0, 1, 2)
     row += 1
     grid.addWidget(dlg.status_label, row, 0, 1, 2)
@@ -257,11 +270,13 @@ def open_training_window(parent, app_state):
     app_state.training_window = dlg
 
     outer = QHBoxLayout(dlg)
+    outer.setAlignment(Qt.AlignmentFlag.AlignTop)
 
     # ---- Left: Segmentation ----
     left = QGridLayout()
     left_w = QWidget(); left_w.setLayout(left)
-    outer.addWidget(left_w)
+    left_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+    outer.addWidget(left_w, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     left.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -310,11 +325,7 @@ def open_training_window(parent, app_state):
             app_state, seg_ds_name.text(), use_seg_only.isChecked(),
             seg_sel.get(), seg_batch.currentText(), b, e, d, dlg)
 
-    QPushButton("Create Training Dataset", clicked=_create_seg_ds).also_add = left.addWidget(
-        QPushButton("Create Training Dataset", clicked=_create_seg_ds), row, 0, 1, 2)
-    # fix: just add button properly
-    btn_create_seg = QPushButton("Create Training Dataset")
-    btn_create_seg.clicked.connect(_create_seg_ds)
+    btn_create_seg = _btn("Create Training Dataset", _create_seg_ds)
     left.addWidget(btn_create_seg, row, 0, 1, 2); row += 1
 
     left.addWidget(QLabel(""), row, 0); row += 1
@@ -342,14 +353,14 @@ def open_training_window(parent, app_state):
             app_state.train_segmentation_params[k].set(e.text())
         start_segmentation_training(dlg, app_state, seg_ds_combo.currentText())
 
-    btn_train_seg = QPushButton("Start Training")
-    btn_train_seg.clicked.connect(_train_seg)
+    btn_train_seg = _btn("Start Training", _train_seg)
     left.addWidget(btn_train_seg, row, 0, 1, 2)
 
     # ---- Right: Classification ----
     right = QGridLayout()
     right_w = QWidget(); right_w.setLayout(right)
-    outer.addWidget(right_w)
+    right_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+    outer.addWidget(right_w, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
     right.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
@@ -393,8 +404,7 @@ def open_training_window(parent, app_state):
             app_state, cls_ds_name.text(), use_class_only.isChecked(),
             cls_sel.get(), cls_batch.currentText(), b, e, d, dlg)
 
-    btn_create_cls = QPushButton("Create Training Dataset")
-    btn_create_cls.clicked.connect(_create_cls_ds)
+    btn_create_cls = _btn("Create Training Dataset", _create_cls_ds)
     right.addWidget(btn_create_cls, row, 0, 1, 2); row += 1
 
     right.addWidget(QLabel(""), row, 0); row += 1
@@ -423,8 +433,7 @@ def open_training_window(parent, app_state):
         b = app_state.bird_combobox.currentText() if app_state.bird_combobox else ""
         start_classification_training(dlg, app_state, cls_ds_combo.currentText(), b)
 
-    btn_train_cls = QPushButton("Start Training")
-    btn_train_cls.clicked.connect(_train_cls)
+    btn_train_cls = _btn("Start Training", _train_cls)
     right.addWidget(btn_train_cls, row, 0, 1, 2)
 
     # Shared status widgets
@@ -459,7 +468,10 @@ def open_cluster_window(parent, app_state):
     dlg.resize(400, 580)
     app_state.cluster_window = dlg
 
-    grid = QGridLayout(dlg)
+    outer = QVBoxLayout(dlg)
+    grid = QGridLayout()
+    outer.addLayout(grid)
+    outer.addStretch()
     row = 0
     grid.addWidget(QLabel("<b style='font-size:16px'>Cluster Operations</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
     row += 1
@@ -501,8 +513,7 @@ def open_cluster_window(parent, app_state):
         start_create_cluster_dataset_thread(app_state, ds_name.text(), use_seg.isChecked(),
                                             sel.get(), batch_combo.currentText(), b, e, d, dlg)
 
-    btn_create = QPushButton("Create Cluster Dataset")
-    btn_create.clicked.connect(_create_ds)
+    btn_create = _btn("Create Cluster Dataset", _create_ds)
     grid.addWidget(btn_create, row, 0, 1, 2); row += 1
 
     grid.addWidget(QLabel(""), row, 0); row += 1
@@ -525,21 +536,20 @@ def open_cluster_window(parent, app_state):
             app_state.umap_k_means_params[k].set(e.text())
         start_clustering_thread(dlg, app_state, remove_pkl_suffix(clus_combo.currentText()))
 
-    btn_cluster = QPushButton("Cluster Syllables")
-    btn_cluster.clicked.connect(_cluster)
+    btn_cluster = _btn("Cluster Syllables", _cluster)
     grid.addWidget(btn_cluster, row, 0, 1, 2); row += 1
 
-    btn_dash = QPushButton("Open Dash GUI")
-    btn_dash.clicked.connect(lambda: start_dash_app_thread(app_state, remove_pkl_suffix(clus_combo.currentText())))
+    btn_dash = _btn("Open Dash GUI",
+                     lambda: start_dash_app_thread(app_state, remove_pkl_suffix(clus_combo.currentText())))
     grid.addWidget(btn_dash, row, 0)
 
-    btn_close_dash = QPushButton("Close Dash GUI")
-    btn_close_dash.clicked.connect(lambda: stop_dash_app_thread(app_state))
+    btn_close_dash = _btn("Close Dash GUI",
+                           lambda: stop_dash_app_thread(app_state))
     grid.addWidget(btn_close_dash, row, 1)
     row += 1
 
-    btn_replace = QPushButton("Replace Labels")
-    btn_replace.clicked.connect(lambda: replace_labels_from_df(app_state, remove_pkl_suffix(clus_combo.currentText()), dlg))
+    btn_replace = _btn("Replace Labels",
+                        lambda: replace_labels_from_df(app_state, remove_pkl_suffix(clus_combo.currentText()), dlg))
     grid.addWidget(btn_replace, row, 0, 1, 2)
     row += 1
 

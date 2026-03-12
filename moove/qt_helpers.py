@@ -7,12 +7,19 @@ from PyQt6.QtWidgets import QWidget, QApplication
 
 
 class _Invoker(QObject):
-    """Singleton helper that executes callables on the main GUI thread."""
+    """Singleton helper that executes callables on the main GUI thread.
+
+    Must be created on the main thread, and uses QueuedConnection so that
+    emits from worker threads are dispatched to the main event loop.
+    """
     _call = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
-        self._call.connect(self._execute)
+        app = QApplication.instance()
+        if app is not None:
+            self.moveToThread(app.thread())
+        self._call.connect(self._execute, Qt.ConnectionType.QueuedConnection)
 
     @pyqtSlot(object)
     def _execute(self, fn):
@@ -70,8 +77,8 @@ class QRangeSliderV(QWidget):
     valuesChanged = pyqtSignal(float, float)
 
     _TRACK_WIDTH = 6
-    _HANDLE_RADIUS = 8
-    _MARGIN = 30  # top/bottom margin for value labels
+    _HANDLE_RADIUS = 9
+    _MARGIN = 38
 
     def __init__(self, min_val, max_val, bottom_val, top_val, parent=None):
         super().__init__(parent)
@@ -79,10 +86,10 @@ class QRangeSliderV(QWidget):
         self._max = float(max_val)
         self._bottom = float(bottom_val)
         self._top = float(top_val)
-        self._dragging = None  # 'bottom' or 'top'
-        self.setMinimumWidth(80)
+        self._dragging = None
+        self.setMinimumWidth(90)
         self.setMinimumHeight(100)
-        self._font = QFont("Arial", 9)
+        self._font = QFont("Arial", 12, QFont.Weight.Bold)
 
     # -- public API --
     def bottom(self):
@@ -156,8 +163,21 @@ class QRangeSliderV(QWidget):
         p.setPen(QColor(0, 0, 0))
         top_text = f"{self._top:.0f}"
         bot_text = f"{self._bottom:.0f}"
-        p.drawText(cx - fm.horizontalAdvance(top_text) // 2, int(y_top - self._HANDLE_RADIUS - 4), top_text)
-        p.drawText(cx - fm.horizontalAdvance(bot_text) // 2, int(y_bot + self._HANDLE_RADIUS + fm.height()), bot_text)
+        p.drawText(cx - fm.horizontalAdvance(top_text) // 2,
+                   int(y_top - self._HANDLE_RADIUS - 6), top_text)
+        p.drawText(cx - fm.horizontalAdvance(bot_text) // 2,
+                   int(y_bot + self._HANDLE_RADIUS + fm.height() + 2), bot_text)
+
+        # min / max labels (smaller, grey)
+        small_font = QFont("Arial", 9)
+        p.setFont(small_font)
+        sfm = QFontMetrics(small_font)
+        p.setPen(QColor(120, 120, 120))
+        max_text = f"{self._max:.0f}"
+        min_text = f"{self._min:.0f}"
+        p.drawText(cx - sfm.horizontalAdvance(max_text) // 2, sfm.height(), max_text)
+        p.drawText(cx - sfm.horizontalAdvance(min_text) // 2, self.height() - 4, min_text)
+
         p.end()
 
     # -- mouse interaction --

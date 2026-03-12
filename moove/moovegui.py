@@ -139,7 +139,9 @@ class MooveMainWindow(QMainWindow):
             if not os.path.exists(icon_path):
                 icon_path = os.path.join(pkg_dir, "templates", "logo.png")
             if os.path.exists(icon_path):
-                self.setWindowIcon(QIcon(icon_path))
+                icon = QIcon(icon_path)
+                self.setWindowIcon(icon)
+                QApplication.instance().setWindowIcon(icon)
             if os.name == 'nt':
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('moove.gui')
         except Exception as e:
@@ -298,7 +300,7 @@ class MooveMainWindow(QMainWindow):
             init_bot, init_top = vmin_cfg + dist, vmax_cfg - dist
 
         self.range_slider = QRangeSliderV(vmin_cfg, vmax_cfg, init_bot, init_top)
-        self.range_slider.setFixedWidth(90)
+        self.range_slider.setFixedWidth(100)
         self.range_slider.valuesChanged.connect(self._on_slider_changed)
         plot_row.addWidget(self.range_slider)
 
@@ -541,7 +543,7 @@ class MooveMainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     window = MooveMainWindow()
-    window.resize(1200, 750)
+    window.resize(1200, 600)
     window.show()
     sys.exit(app.exec())
 
