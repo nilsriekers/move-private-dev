@@ -51,7 +51,8 @@ def update_plots(display_dict, app_state, filepath):
                 filtered_freqs.min(), filtered_freqs.max()]
 
         app_state.spec = ax1.imshow(db_spec, aspect='auto', origin='lower',
-                                    extent=extent, cmap='jet', vmin=vmin, vmax=vmax)
+                                    extent=extent, cmap='jet', vmin=vmin, vmax=vmax,
+                                    interpolation='none')
     else:
         # slower, more detailed drawing
         app_state.spec = ax1.pcolormesh(display_dict["times"], filtered_freqs, db_spec,

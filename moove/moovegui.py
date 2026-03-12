@@ -262,6 +262,7 @@ class MooveMainWindow(QMainWindow):
         self.segmented_cb.stateChanged.connect(self._on_checkbox_toggle)
         self.classified_cb.stateChanged.connect(self._on_checkbox_toggle)
         bar.addWidget(self.segmented_cb)
+        bar.addSpacing(8)
         bar.addWidget(self.classified_cb)
 
         parent_layout.addLayout(bar)
@@ -273,8 +274,10 @@ class MooveMainWindow(QMainWindow):
         s = self.app_state
         plot_row = QHBoxLayout()
 
+        screen = QApplication.primaryScreen()
+        dpr = screen.devicePixelRatio() if screen else 1.0
         self.fig, (self.ax1, self.ax2, self.ax3) = plt.subplots(
-            3, 1, figsize=(9, 5.5),
+            3, 1, figsize=(9, 5.5), dpi=100 * dpr,
             gridspec_kw={'height_ratios': [6, 1, 6]}, sharex=True)
 
         self.canvas = FigureCanvasQTAgg(self.fig)
@@ -322,10 +325,12 @@ class MooveMainWindow(QMainWindow):
     def _build_button_bar(self, parent_layout):
         s = self.app_state
         bar = QHBoxLayout()
+        bar.setContentsMargins(0, 6, 0, 0)
 
         refresh_text = "↻" if platform.system() == 'Darwin' else "⟳"
         btn = lambda text, cb: self._make_btn(text, cb, bar)
 
+        bar.addStretch()
         btn(refresh_text, lambda: update(s))
         btn("Previous", lambda: (s.change_file(-1), plot_data(s)))
         btn("Next", lambda: (s.change_file(1), plot_data(s)))
@@ -340,8 +345,8 @@ class MooveMainWindow(QMainWindow):
         btn("Relabel", lambda: open_relabel_window(self, s))
         btn("Training", lambda: open_training_window(self, s))
         btn("Cluster", lambda: open_cluster_window(self, s))
-
         bar.addStretch()
+
         parent_layout.addLayout(bar)
 
     @staticmethod

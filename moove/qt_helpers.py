@@ -78,7 +78,7 @@ class QRangeSliderV(QWidget):
 
     _TRACK_WIDTH = 6
     _HANDLE_RADIUS = 9
-    _MARGIN = 38
+    _MARGIN = 28
 
     def __init__(self, min_val, max_val, bottom_val, top_val, parent=None):
         super().__init__(parent)
@@ -167,16 +167,6 @@ class QRangeSliderV(QWidget):
                    int(y_top - self._HANDLE_RADIUS - 6), top_text)
         p.drawText(cx - fm.horizontalAdvance(bot_text) // 2,
                    int(y_bot + self._HANDLE_RADIUS + fm.height() + 2), bot_text)
-
-        # min / max labels (smaller, grey)
-        small_font = QFont("Arial", 9)
-        p.setFont(small_font)
-        sfm = QFontMetrics(small_font)
-        p.setPen(QColor(120, 120, 120))
-        max_text = f"{self._max:.0f}"
-        min_text = f"{self._min:.0f}"
-        p.drawText(cx - sfm.horizontalAdvance(max_text) // 2, sfm.height(), max_text)
-        p.drawText(cx - sfm.horizontalAdvance(min_text) // 2, self.height() - 4, min_text)
 
         p.end()
 

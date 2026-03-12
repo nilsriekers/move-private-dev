@@ -57,7 +57,7 @@ def open_resegment_window(parent, app_state):
     app_state.resegment_window = dlg
 
     root = QVBoxLayout(dlg)
-    root.setContentsMargins(6, 2, 6, 6)
+    root.setContentsMargins(8, 8, 8, 8)
     panels = QHBoxLayout()
     panels.setAlignment(Qt.AlignmentFlag.AlignTop)
     root.addLayout(panels, stretch=1)
@@ -203,12 +203,12 @@ def open_relabel_window(parent, app_state):
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Relabel")
-    dlg.resize(400, 350)
+    dlg.resize(400, 280)
     _set_dlg_icon(dlg)
     app_state.relabel_window = dlg
 
     outer = QVBoxLayout(dlg)
-    outer.setContentsMargins(6, 2, 6, 6)
+    outer.setContentsMargins(8, 8, 8, 8)
     grid = QGridLayout()
     outer.addLayout(grid)
     outer.addStretch()
@@ -290,7 +290,7 @@ def open_training_window(parent, app_state):
     app_state.training_window = dlg
 
     root = QVBoxLayout(dlg)
-    root.setContentsMargins(6, 2, 6, 6)
+    root.setContentsMargins(8, 8, 8, 8)
     panels = QHBoxLayout()
     panels.setAlignment(Qt.AlignmentFlag.AlignTop)
     root.addLayout(panels, stretch=1)
@@ -489,7 +489,7 @@ def open_cluster_window(parent, app_state):
     app_state.cluster_window = dlg
 
     outer = QVBoxLayout(dlg)
-    outer.setContentsMargins(6, 2, 6, 6)
+    outer.setContentsMargins(8, 8, 8, 8)
     grid = QGridLayout()
     outer.addLayout(grid)
     outer.addStretch()
