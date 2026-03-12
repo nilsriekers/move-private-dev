@@ -208,15 +208,38 @@ You can also point ``sounddevice`` to a custom PortAudio build via the
 
 This is useful if you compile PortAudio with ASIO support yourself.
 
-Conda-forge (planned)
+Installing with conda
 ---------------------
 
-A conda-forge recipe for Moove is prepared but not yet published.  Once
-available, installation will be:
+.. note::
+
+   The conda-forge package is prepared but **not yet uploaded**.
+   The instructions below will work once the feedstock has been accepted.
+
+Moove can be installed from conda-forge:
 
 .. code-block:: bash
 
    conda install -c conda-forge moove
+
+or, if you use `mamba <https://mamba.readthedocs.io/>`_ (recommended for
+faster dependency resolution):
+
+.. code-block:: bash
+
+   mamba install -c conda-forge moove
+
+This will automatically pull in all required dependencies including
+PortAudio, PyTorch, matplotlib, and the helper packages (evfuncs,
+rangeslider, etc.).
+
+After installation the entry points ``moovegui`` and ``moovetaf`` are
+available on your ``PATH``:
+
+.. code-block:: bash
+
+   moovegui        # GUI for datasets & training
+   moovetaf        # real-time recording & targeting
 
 .. note::
 

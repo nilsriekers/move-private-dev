@@ -39,15 +39,27 @@ def invoke_in_main_thread(fn, *args, **kwargs):
     _invoker_instance._call.emit(fn)
 
 
+def _app_icon_pixmap(size=64):
+    """Return the application icon as a QPixmap, or None."""
+    app = QApplication.instance()
+    if app is None:
+        return None
+    icon = app.windowIcon()
+    if icon.isNull():
+        return None
+    return icon.pixmap(size, size)
+
+
 def show_info(parent, title, message):
-    """Show a QMessageBox.information with the application icon explicitly set."""
+    """Show a QMessageBox.information with the moove icon (not the Python rocket)."""
     if parent is not None and not parent.isVisible():
         parent = None
-    box = QMessageBox(QMessageBox.Icon.Information, title, message,
+    box = QMessageBox(QMessageBox.Icon.NoIcon, title, message,
                       QMessageBox.StandardButton.Ok, parent)
-    app_icon = QApplication.instance().windowIcon()
-    if not app_icon.isNull():
-        box.setWindowIcon(app_icon)
+    pix = _app_icon_pixmap()
+    if pix is not None:
+        box.setWindowIcon(QApplication.instance().windowIcon())
+        box.setIconPixmap(pix)
     box.exec()
 
 

@@ -15,16 +15,29 @@ matplotlib.use('Agg')
 
 
 def load_segmentation_checkmarks(all_files):
-    """Check whether files have been manually checked as being segmented"""
-    unsegment_files = []
+    """Return only files that are NOT yet marked as segmented.
+
+    A file is considered "already segmented" only when its companion
+    .rec file explicitly contains ``Hand Segmented = 1``.
+    Files whose .rec is missing, unreadable, or lacks the field are
+    treated as *not* segmented and therefore kept in the list.
+    """
+    unsegmented_files = []
     for file in all_files:
         recfile_path = os.path.splitext(file)[0] + ".rec"
-        with open(recfile_path, "r") as f:
-            content = f.read()
-        match = re.search(r"Hand Segmented = (\d+)", content)
-        if match and match.group(1) == '0':
-            unsegment_files.append(file)
-    return unsegment_files
+        try:
+            with open(recfile_path, "r") as f:
+                content = f.read()
+        except (FileNotFoundError, OSError):
+            # No .rec file → not segmented → keep
+            unsegmented_files.append(file)
+            continue
+        match = re.search(r"Hand Segmented\s*=\s*(\d+)", content)
+        if match and match.group(1) == '1':
+            # Explicitly marked as segmented → skip
+            continue
+        unsegmented_files.append(file)
+    return unsegmented_files
 
 
 def start_segment_evfuncs(app_state, selection, batch_file, bird, experiment, day):
@@ -271,6 +284,14 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
     """Segment files using a machine learning model in a threaded process."""
     from moove.utils import get_display_data, plot_data, save_notmat
 
+    if not all_files:
+        app_state.logger.warning("segment_files_ml: no files to process (list is empty).")
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            app_state.resegment_window, "Info",
+            "No files to segment. (All files may already be marked as segmented.)"))
+        return
+
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
@@ -301,18 +322,27 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
             })
             notmat_path = os.path.join(app_state.data_dir, display_data["file_name"] + ".not.mat")
             save_notmat(notmat_path, display_data)
-            app_state.logger.info(f"Saved {len(onsets)} segments to {notmat_path}")
+            app_state.logger.info(f"ML segmentation: saved {len(onsets)} segments to {notmat_path}")
         except Exception as e:
             app_state.logger.error(f"File {file_path} could not be processed correctly: {e}. Check manually.")
+            import traceback
+            app_state.logger.error(traceback.format_exc())
+            # Restore state before returning so the GUI stays consistent
+            app_state.data_dir = original_data_dir
+            app_state.song_files = original_song_files
+            app_state.current_file_index = original_current_file_index
+            invoke_in_main_thread(progressbar.hide)
+            invoke_in_main_thread(lambda e=e: show_info(
+                app_state.resegment_window, "Error",
+                f"Segmentation failed: {e}"))
             return
 
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
 
-    invoke_in_main_thread(app_state.reset_edit_type)
-    invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
+    invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(lambda: show_info(
         app_state.resegment_window, "Info", "Segmentation completed successfully!"))
 

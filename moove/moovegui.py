@@ -142,7 +142,7 @@ class MooveMainWindow(QMainWindow):
                 icon = QIcon(icon_path)
                 self.setWindowIcon(icon)
                 QApplication.instance().setWindowIcon(icon)
-            if os.name == 'nt':
+            if sys.platform == 'win32':
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('moove.gui')
         except Exception as e:
             logger.warning(f"Could not set window icon: {e}")
@@ -549,11 +549,25 @@ def main():
     app = QApplication(sys.argv)
 
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    icon_path = None
     for name in ("logo_128_white_bg_small.png", "logo.png"):
-        icon_path = os.path.join(pkg_dir, "templates", name)
-        if os.path.exists(icon_path):
-            app.setWindowIcon(QIcon(icon_path))
+        _p = os.path.join(pkg_dir, "templates", name)
+        if os.path.exists(_p):
+            icon_path = _p
             break
+
+    if icon_path:
+        app.setWindowIcon(QIcon(icon_path))
+        # On macOS, also set the Dock / NSApplication icon so that
+        # QMessageBox and other system dialogs show the Moove logo
+        # instead of the default Python rocket.
+        if sys.platform == "darwin":
+            try:
+                from AppKit import NSApplication, NSImage
+                ns_image = NSImage.alloc().initByReferencingFile_(icon_path)
+                NSApplication.sharedApplication().setApplicationIconImage_(ns_image)
+            except Exception:
+                pass
 
     window = MooveMainWindow()
     window.resize(1200, 600)

@@ -34,11 +34,18 @@ def save_notmat(filename, notmat_dict):
     onsets = notmat_dict['onsets'].astype(np.float64)
     offsets = notmat_dict['offsets'].astype(np.float64)
 
+    # Provide sensible defaults for header fields that are only present
+    # when a .not.mat was previously loaded (e.g. via evfuncs.load_notmat).
+    header = notmat_dict.get('__header__', 'MATLAB 5.0 MAT-file')
+    version = notmat_dict.get('__version__', '1.0')
+    globals_ = notmat_dict.get('__globals__', [])
+    fs = notmat_dict.get('Fs', notmat_dict.get('sampling_rate', 0))
+
     save_dict = {
-        '__header__': notmat_dict['__header__'],
-        '__version__': notmat_dict['__version__'],
-        '__globals__': notmat_dict['__globals__'],
-        'Fs': np.float64(notmat_dict['Fs']),
+        '__header__': header,
+        '__version__': version,
+        '__globals__': globals_,
+        'Fs': np.float64(fs),
         'fname': notmat_dict['file_name'],
         'labels': notmat_dict['labels'],
         'onsets': onsets.reshape(-1, 1),

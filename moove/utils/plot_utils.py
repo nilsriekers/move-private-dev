@@ -1,7 +1,9 @@
+import logging
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import traceback
 from moove.utils.audio_utils import (decibel)
 from moove.utils.movefuncs_utils import (load_recfile)
 
@@ -138,7 +140,8 @@ def update_ax2_ax3(ax2, ax3, display_dict, app_state):
     ax2.clear()
     # Update ax2 with labels
     if "labels" in display_dict:
-        for i, label in enumerate(display_dict["labels"]):
+        min_len = min(len(display_dict["onsets"]), len(display_dict["offsets"]), len(display_dict["labels"]))
+        for i, label in zip(range(min_len), display_dict["labels"]):
             label_position = (display_dict["onsets"][i] + display_dict["offsets"][i]) / (2 * 1000)
             ax2.text(label_position, 0.5, label, ha='center', va='center', clip_on=True)
     ax2.set_yticks([])
@@ -185,7 +188,8 @@ def update_ax2(ax2, display_dict, app_state):
 
     # write new labels to axis
     if "labels" in display_dict:
-        for i in range(len(display_dict["onsets"])):
+        min_len = min(len(display_dict["onsets"]), len(display_dict["offsets"]), len(display_dict["labels"]))
+        for i in range(min_len):
             label_position = (display_dict["onsets"][i] + display_dict["offsets"][i]) / 2000
             ax2.text(label_position, 0.5, display_dict["labels"][i], ha='center', va='center', clip_on=True, zorder=1)
 
@@ -233,10 +237,12 @@ def plot_data(app_state):
 
         app_state.draw_canvas()
         
-    except:
+    except Exception as exc:
+        # Log the REAL error so it is visible in the console / log file.
+        app_state.logger.error("plot_data failed: %s", exc)
+        app_state.logger.debug("Full traceback:\n%s", traceback.format_exc())
+
         # If there's an error with the current file, try to fall back to the last valid file
-        app_state.logger.debug("Could not plot data. Trying to fall back to last valid file.")
-        
         if hasattr(app_state, 'last_valid_file_path') and app_state.last_valid_file_path:
             try:
                 # Try to plot the last valid file instead
@@ -269,7 +275,6 @@ def plot_data(app_state):
                 app_state.draw_canvas()
                 
             except Exception as fallback_error:
-                app_state.logger.debug("Failed to fall back to last valid file: %s", str(fallback_error))
-                # If even the fallback fails, just log the error and continue
+                app_state.logger.error("Fallback plot also failed: %s", fallback_error)
         else:
-            app_state.logger.debug("No fallback file available. User will need to manually navigate to a valid file.")
+            app_state.logger.error("No fallback file available.")
