@@ -7,9 +7,9 @@ import threading
 import torch
 import re
 
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QApplication
 
-from moove.qt_helpers import invoke_in_main_thread
+from moove.qt_helpers import invoke_in_main_thread, show_info
 
 matplotlib.use('Agg')
 
@@ -106,7 +106,7 @@ def segment_evfuncs(app_state, progressbar, files):
     invoke_in_main_thread(progressbar.setValue, len(files))
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         app_state.resegment_window, "Info", "Segmentation with Evfuncs completed successfully!"))
 
 
@@ -174,7 +174,7 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     from moove.utils import get_display_data, save_features, plot_data, extract_raw_audio
 
     if len(all_files) == 0:
-        invoke_in_main_thread(lambda: QMessageBox.information(
+        invoke_in_main_thread(lambda: show_info(
             parent, "Error", "Not enough files given! You need at least 1 file to create a dataset."))
         return
 
@@ -219,7 +219,7 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     if num_segs == 0:
         invoke_in_main_thread(lambda: (
             app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label') else None,
-            QMessageBox.information(app_state.training_window, "Error", "No segments found in the given files.")))
+            show_info(app_state.training_window, "Error", "No segments found in the given files.")))
         return
 
     def _hide_show_progress():
@@ -262,7 +262,7 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
 
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         app_state.training_window, "Info", "The segmentation training dataset has been created successfully!"))
     invoke_in_main_thread(lambda: app_state.change_file(0))
 
@@ -292,12 +292,16 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
                 int(params['offset_window_size'].get()), int(params['n_offset_false'].get()),
                 float(params['min_silent_duration'].get()), float(params['min_syllable_length'].get()))
 
+            onsets_ms = np.array(onsets) * 1000
+            offsets_ms = np.array(offsets) * 1000
             display_data.update({
-                "onsets": np.array(onsets) * 1000,
-                "offsets": np.array(offsets) * 1000,
+                "onsets": onsets_ms,
+                "offsets": offsets_ms,
                 "labels": "x" * len(onsets)
             })
-            save_notmat(os.path.join(app_state.data_dir, display_data["file_name"] + ".not.mat"), display_data)
+            notmat_path = os.path.join(app_state.data_dir, display_data["file_name"] + ".not.mat")
+            save_notmat(notmat_path, display_data)
+            app_state.logger.info(f"Saved {len(onsets)} segments to {notmat_path}")
         except Exception as e:
             app_state.logger.error(f"File {file_path} could not be processed correctly: {e}. Check manually.")
             return
@@ -306,10 +310,10 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
 
-    app_state.reset_edit_type()
+    invoke_in_main_thread(app_state.reset_edit_type)
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         app_state.resegment_window, "Info", "Segmentation completed successfully!"))
 
 
@@ -331,7 +335,7 @@ def start_segment_files_thread(app_state, segmentation_model_name, selection, ch
     try:
         checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{segmentation_model_name}.pth'), map_location=device)
     except:
-        QMessageBox.information(app_state.resegment_window, "Error", "Selected segmentation model doesn't exist or is not valid!")
+        show_info(app_state.resegment_window, "Error", "Selected segmentation model doesn't exist or is not valid!")
         return
     model, metadata = checkpoint['model'], checkpoint['metadata']
     model.to(device)
@@ -375,7 +379,7 @@ def start_create_segmentation_training_dataset(app_state, dataset_name, use_sele
 
     dataset_name = str(dataset_name)
     if len(dataset_name) < 1:
-        QMessageBox.information(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
+        show_info(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
         return
 
     win = app_state.training_window

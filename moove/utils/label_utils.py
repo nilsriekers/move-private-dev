@@ -10,9 +10,9 @@ import re
 from scipy.signal import spectrogram
 import numpy as np
 
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QApplication
 
-from moove.qt_helpers import invoke_in_main_thread
+from moove.qt_helpers import invoke_in_main_thread, show_info
 
 
 def load_classification_checkmarks(all_files):
@@ -58,7 +58,7 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
 
     dataset_name = str(dataset_name)
     if len(dataset_name) < 1:
-        QMessageBox.information(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
+        show_info(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
     else:
         progressbar = win.progressbar
         progressbar.setMaximum(len(files))
@@ -82,7 +82,7 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
     from moove.utils import get_display_data, seconds_to_index
 
     if len(files) == 0:
-        invoke_in_main_thread(lambda: QMessageBox.information(
+        invoke_in_main_thread(lambda: show_info(
             parent, "Error", "Not enough files given! You need at least 1 file to create a dataset."))
         return
 
@@ -123,7 +123,7 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
     if num_onsets == 0:
         invoke_in_main_thread(lambda: (
             app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label') else None,
-            QMessageBox.information(parent, "Error", "No syllable onsets found in the given files.")))
+            show_info(parent, "Error", "No syllable onsets found in the given files.")))
         return
 
     def _hide_show_progress():
@@ -173,7 +173,7 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
     invoke_in_main_thread(progressbar.setValue, len(files))
     invoke_in_main_thread(progressbar.hide)
 
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         parent, "Info", "Classification training dataset has been created successfully!"))
 
     first_index = going_prod_df.index[0]
@@ -204,7 +204,7 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
     try:
         checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'), map_location=device)
     except:
-        QMessageBox.information(app_state.relabel_window, "Error", "Selected classification model doesn't exist or is not valid! Perhaps you forgot to pick a model?")
+        show_info(app_state.relabel_window, "Error", "Selected classification model doesn't exist or is not valid! Perhaps you forgot to pick a model?")
         return
     model, metadata = checkpoint['model'], checkpoint['metadata']
 
@@ -282,8 +282,8 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
     invoke_in_main_thread(progressbar.setValue, len(all_files))
 
-    app_state.reset_edit_type()
+    invoke_in_main_thread(app_state.reset_edit_type)
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         app_state.relabel_window, "Info", "Relabeling of files completed successfully!"))

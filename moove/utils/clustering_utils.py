@@ -14,9 +14,9 @@ from scipy.signal import spectrogram
 from sklearn.cluster import KMeans
 from umap import UMAP
 
-from PyQt6.QtWidgets import QMessageBox, QApplication, QDialog, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout
 
-from moove.qt_helpers import invoke_in_main_thread
+from moove.qt_helpers import invoke_in_main_thread, show_info
 
 warnings.filterwarnings('ignore')
 
@@ -41,7 +41,7 @@ def start_create_cluster_dataset_thread(app_state, dataset_name, use_selected_fi
     )
 
     if len(dataset_name) < 1:
-        QMessageBox.information(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
+        show_info(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
     else:
         win = app_state.cluster_window
         progressbar = win.progressbar
@@ -97,7 +97,7 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
     if num_segs < 10:
         invoke_in_main_thread(lambda: (
             app_state.cluster_window.status_label.hide() if hasattr(app_state.cluster_window, 'status_label') else None,
-            QMessageBox.information(parent, "Error", "Not enough segments given. Need at least 10 segments to form clusters.")))
+            show_info(parent, "Error", "Not enough segments given. Need at least 10 segments to form clusters.")))
         return
 
     def _hide_show_progress():
@@ -153,7 +153,7 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
 
     invoke_in_main_thread(progressbar.setValue, max_value)
     invoke_in_main_thread(progressbar.hide)
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         parent, "Info", f"Cluster dataset '{dataset_name}' created successfully!"))
 
 
@@ -161,10 +161,10 @@ def start_clustering_thread(parent, app_state, dataset_name_entry):
     """Start the clustering process in a separate thread."""
     dataset_name = dataset_name_entry
     if dataset_name == "Select Cluster Dataset":
-        QMessageBox.information(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
+        show_info(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
         return
     else:
-        QMessageBox.information(parent, "Info", "Clustering started. This may take a while, please wait!")
+        show_info(parent, "Info", "Clustering started. This may take a while, please wait!")
 
     def thread_wrapper():
         current_thread = threading.current_thread()
@@ -223,7 +223,7 @@ def run_clustering(parent, app_state, dataset_name):
     invoke_in_main_thread(_hide_running)
 
     app_state.logger.debug("Clustering complete. Results saved to %s", output_path)
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         parent, "Info", f"Clustering complete! Results saved to {output_path}"))
 
 
@@ -268,10 +268,10 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     from moove.utils.plot_utils import plot_data
 
     if dataset_name == "Select Cluster Dataset":
-        QMessageBox.information(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
+        show_info(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
         return
     else:
-        QMessageBox.information(parent, "Info", "Replacement of syllables started. This may take a while, please wait!")
+        show_info(parent, "Info", "Replacement of syllables started. This may take a while, please wait!")
 
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
@@ -314,7 +314,7 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     invoke_in_main_thread(progressbar.setValue, len(files))
 
     invoke_in_main_thread(progressbar.hide)
-    app_state.reset_edit_type()
+    invoke_in_main_thread(app_state.reset_edit_type)
     invoke_in_main_thread(plot_data, app_state)
-    invoke_in_main_thread(lambda: QMessageBox.information(
+    invoke_in_main_thread(lambda: show_info(
         parent, "Info", "Replacement of syllables complete!"))

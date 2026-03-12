@@ -17,9 +17,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from torch.utils.data import DataLoader, TensorDataset
 
-from PyQt6.QtWidgets import QMessageBox, QLabel, QApplication, QDialog, QPushButton, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import QLabel, QApplication, QDialog, QPushButton, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+
+from moove.qt_helpers import show_info
 
 
 def _show_status(window, text):
@@ -72,7 +74,7 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
     """Start training of segmentation model using provided dataset and parameters."""
 
     if training_dataset_name == "Select Training Dataset":
-        QMessageBox.information(parent, "Error", "Selected training dataset not valid! Perhaps you forgot to pick a dataset?")
+        show_info(parent, "Error", "Selected training dataset not valid! Perhaps you forgot to pick a dataset?")
         return
 
     QAT = False
@@ -101,12 +103,12 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
         file_indices = np.unique(features[:, 0])
     else:
         _hide_status(app_state.training_window)
-        QMessageBox.information(parent, "Error", "Given dataset is empty!")
+        show_info(parent, "Error", "Given dataset is empty!")
         return
 
     if num_segs <= 7:
         _hide_status(app_state.training_window)
-        QMessageBox.information(parent, "Error", f"Not enough segments given (n = {num_segs}), need at least 7 to train a network!\n You might want to adjust the threshold.")
+        show_info(parent, "Error", f"Not enough segments given (n = {num_segs}), need at least 7 to train a network!\n You might want to adjust the threshold.")
         return
 
     if len(file_indices) >= 7:
@@ -115,7 +117,7 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
         train_files, temp_files = train_test_split(file_indices, test_size=0.3, random_state=42)
         val_files, test_files = train_test_split(temp_files, test_size=0.5, random_state=42)
-        QMessageBox.information(parent, "Info", "Training of segmentation model started. This may take a while, please wait!")
+        show_info(parent, "Info", "Training of segmentation model started. This may take a while, please wait!")
         _show_status(app_state.training_window, "Training in Progress...")
 
         train_data = filter_data_by_files(features, train_files)
@@ -129,7 +131,7 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
         train_data, temp_data = train_test_split(features, test_size=0.3, random_state=42)
         val_data, test_data = train_test_split(temp_data, test_size=0.5, random_state=42)
-        QMessageBox.information(parent, "Info", "Training of segmentation model started. This may take a while, please wait!")
+        show_info(parent, "Info", "Training of segmentation model started. This may take a while, please wait!")
         _show_status(app_state.training_window, "Training in Progress...")
 
     train_data = train_data[:, 1:]
@@ -287,15 +289,15 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
     _hide_status(app_state.training_window)
     app_state.training_window.close()
-    QMessageBox.information(parent, "Info",
-                            f"Model \"{training_dataset_name}\" trained successfully!\nTest Accuracy: {test_accuracy:.4f}")
+    show_info(parent, "Info",
+              f"Model \"{training_dataset_name}\" trained successfully!\nTest Accuracy: {test_accuracy:.4f}")
 
 
 def start_classification_training(parent, app_state, dataset_name, bird):
     """Start training of classification model using provided dataset and parameters."""
 
     if dataset_name == "Select Training Dataset":
-        QMessageBox.information(parent, "Error", "Selected training dataset not valid! Perhaps you forgot to pick a dataset?")
+        show_info(parent, "Error", "Selected training dataset not valid! Perhaps you forgot to pick a dataset?")
         return
 
     _show_status(app_state.training_window, "Checking files...")
@@ -338,19 +340,19 @@ def start_classification_training(parent, app_state, dataset_name, bird):
 
     if not filenames:
         _hide_status(app_state.training_window)
-        QMessageBox.information(parent, "Error", "Given dataset is empty!")
+        show_info(parent, "Error", "Given dataset is empty!")
         return
 
     if any(counts_below_threshold):
         _hide_status(app_state.training_window)
-        QMessageBox.information(parent, "Error",
-                                f"Number of labels for syllable {labels_below_threshold} is too small (n = {counts_below_threshold})!\nYou need at least 6 labeled syllables per syllable type.")
+        show_info(parent, "Error",
+                  f"Number of labels for syllable {labels_below_threshold} is too small (n = {counts_below_threshold})!\nYou need at least 6 labeled syllables per syllable type.")
         return
 
     if len(filenames) >= 7:
         train_files, temp_files = train_test_split(filenames, test_size=0.3, random_state=42)
         val_files, test_files = train_test_split(temp_files, test_size=0.5, random_state=42)
-        QMessageBox.information(parent, "Info", "Training of classification model started. This may take a while, please wait!")
+        show_info(parent, "Info", "Training of classification model started. This may take a while, please wait!")
         _show_status(app_state.training_window, "Training in Progress...")
 
         df_train = df[df['file'].isin(train_files)]
@@ -376,7 +378,7 @@ def start_classification_training(parent, app_state, dataset_name, bird):
         val_data, test_data, val_labels, test_labels = train_test_split(
             temp_data, temp_labels, test_size=0.5, stratify=temp_labels, random_state=42)
         input_shape = train_data[0].shape
-        QMessageBox.information(parent, "Info", "Training of classification model started. This may take a while, please wait!")
+        show_info(parent, "Info", "Training of classification model started. This may take a while, please wait!")
         _show_status(app_state.training_window, "Training in Progress...")
 
     train_data, train_labels = shuffle(train_data, train_labels, random_state=42)
@@ -494,8 +496,8 @@ def start_classification_training(parent, app_state, dataset_name, bird):
 
     _hide_status(app_state.training_window)
     app_state.training_window.close()
-    QMessageBox.information(parent, "Info",
-                            f"Model \"{dataset_name}\" trained successfully!\nTest Accuracy: {test_accuracy:.4f}")
+    show_info(parent, "Info",
+              f"Model \"{dataset_name}\" trained successfully!\nTest Accuracy: {test_accuracy:.4f}")
 
 
 def calculate_accuracy_and_percent_probabilities(loader, model, device):

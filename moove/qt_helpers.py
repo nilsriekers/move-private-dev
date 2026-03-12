@@ -3,7 +3,7 @@
 import functools
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
 from PyQt6.QtGui import QPainter, QColor, QFont, QFontMetrics
-from PyQt6.QtWidgets import QWidget, QApplication
+from PyQt6.QtWidgets import QWidget, QApplication, QMessageBox
 
 
 class _Invoker(QObject):
@@ -37,6 +37,18 @@ def invoke_in_main_thread(fn, *args, **kwargs):
     if args or kwargs:
         fn = functools.partial(fn, *args, **kwargs)
     _invoker_instance._call.emit(fn)
+
+
+def show_info(parent, title, message):
+    """Show a QMessageBox.information with the application icon explicitly set."""
+    if parent is not None and not parent.isVisible():
+        parent = None
+    box = QMessageBox(QMessageBox.Icon.Information, title, message,
+                      QMessageBox.StandardButton.Ok, parent)
+    app_icon = QApplication.instance().windowIcon()
+    if not app_icon.isNull():
+        box.setWindowIcon(app_icon)
+    box.exec()
 
 
 def set_combo_items(combo, items, current_text=None):

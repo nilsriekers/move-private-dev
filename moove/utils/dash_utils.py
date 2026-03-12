@@ -15,9 +15,7 @@ from dash.dependencies import Input, Output, State
 from flask import Flask
 from wsgiref.simple_server import make_server, WSGIRequestHandler
 
-from PyQt6.QtWidgets import QMessageBox
-
-from moove.qt_helpers import invoke_in_main_thread
+from moove.qt_helpers import invoke_in_main_thread, show_info
 
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 logging.getLogger('flask').setLevel(logging.ERROR)
@@ -192,7 +190,7 @@ def run_flask_server(app_state, dataset_name):
         df.to_pickle(os.path.join(app_state.config['global_dir'], 'cluster_data', f'{dataset_name}.pkl'))
 
         try:
-            invoke_in_main_thread(lambda: QMessageBox.information(
+            invoke_in_main_thread(lambda: show_info(
                 None, "Success", f"Labels saved successfully!\n\nFile: {dataset_name}.pkl"))
         except:
             pass
@@ -213,7 +211,7 @@ def start_dash_app_thread(app_state, dataset_name):
     """Start the Dash application in a separate thread using AppState."""
 
     if dataset_name == "Select Cluster Dataset":
-        QMessageBox.information(None, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
+        show_info(None, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
     else:
         if app_state.dash_thread and app_state.dash_thread.is_alive():
             app_state.logger.debug("Dash app is already running.")
@@ -292,7 +290,7 @@ def stop_dash_app_thread(app_state):
         app_state.logger.debug("=== DASH APP SUCCESSFULLY STOPPED ===")
 
         try:
-            invoke_in_main_thread(lambda: QMessageBox.information(None, "Dash GUI", "Dash GUI closed successfully!"))
+            invoke_in_main_thread(lambda: show_info(None, "Dash GUI", "Dash GUI closed successfully!"))
         except:
             pass
 
