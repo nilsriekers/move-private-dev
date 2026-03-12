@@ -8,6 +8,7 @@ from scipy.signal import spectrogram
 
 from PyQt6.QtWidgets import QMessageBox
 
+from moove.qt_helpers import invoke_in_main_thread
 from moove.utils.audio_utils import decibel
 
 
@@ -279,9 +280,11 @@ def save_features(app_state, dataset_name, arr, chunk_size=64, hist_size=3, num_
                 pickle.dump({'features': arr[start_idx:end_idx], 'metadata': metadata, 'syllables': num_syls}, f)
 
     if num_files is None or num_files <= 1:
-        QMessageBox.information(None, "Info", f"Features and metadata saved as {dataset_name}_seg.pkl")
+        invoke_in_main_thread(lambda: QMessageBox.information(
+            None, "Info", f"Features and metadata saved as {dataset_name}_seg.pkl"))
     else:
-        QMessageBox.information(None, "Info", f"Features and metadata saved as {dataset_name}_0_seg.pkl to {dataset_name}_{num_files-1}_seg.pkl")
+        invoke_in_main_thread(lambda: QMessageBox.information(
+            None, "Info", f"Features and metadata saved as {dataset_name}_0_seg.pkl to {dataset_name}_{num_files-1}_seg.pkl"))
 
 
 def remove_pkl_suffix(filename):

@@ -203,6 +203,7 @@ def open_relabel_window(parent, app_state):
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Relabel")
+    dlg.setMinimumWidth(400)
     _set_dlg_icon(dlg)
     app_state.relabel_window = dlg
 

@@ -166,6 +166,7 @@ class MooveMainWindow(QMainWindow):
         # Bird
         birds = sorted(get_directories(s.config['rec_data']))
         self.bird_combo = QComboBox()
+        self.bird_combo.setMinimumWidth(120)
         self.bird_combo.addItems(birds)
         s.bird_combobox = self.bird_combo
         if path_parts and path_parts[-3] in birds:
@@ -187,6 +188,7 @@ class MooveMainWindow(QMainWindow):
 
         # Day
         self.day_combo = QComboBox()
+        self.day_combo.setMinimumWidth(120)
         s.day_combobox = self.day_combo
         self._populate_days()
         if path_parts:
