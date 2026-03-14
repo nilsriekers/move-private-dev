@@ -29,7 +29,7 @@ If you can’t find your desired devices in the list, check out section **Instal
 Once you selected your input and output device, the program will start recording automatically. 
 The line **"Threshold triggered"** confirms that sound input was received and a recording has started. 
 The lines stating that the file has been saved **("Saving Bout", ...)** confirm that your recording has ended 
-and that the respective files are saved. If you don't see these lines, take a look in the FAQ's below.
+and that the respective files are saved. If you don't see these lines, take a look in the **FAQ's** below.
 
 Baseline Recordings
 -------------------
