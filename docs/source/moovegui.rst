@@ -96,8 +96,6 @@ The ‘\ **Play’** button will play back the sound of the current file (Fig 17
 
 The buttons ‘\ **Resegment**\ ’, ‘\ **Relabel**\ ’, ‘\ **Training**\ ’ and ‘\ **Cluster**\ ’, as well as the options below (Fig 17, ⑧ ⑨ ⑩ ⑪), are used to train networks and classify syllables and will be explained in detail in the following chapters, including the usage of the upper right check boxes in the main window.
 
-o
-
 It is highly recommended to close the GUI using the ‘X’ in the upper right corner, as this will save all your current settings, including the current file number and slider settings. If any processes are still running in the background the MooveGUI will ask you if you are sure to close despite the running threads. However, after using the DashGUI (Chapter 3.4.3.) and closing the DashGUI via the ‘Close Dash GUI’ button in the Cluster Window, MooveGUI has still pending threads open and the confirmation window opens.
 
 |A screenshot of a computer error message AI-generated content may be incorrect.|

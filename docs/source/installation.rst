@@ -275,87 +275,27 @@ You usually do not need to access these folders directly.
 
    Figure: Moove entry points in the Scripts folder.
 
-(Optional) Recommended hardware
+(Optional) Hardware we are currently using
 -------------------------------
 
 In our lab, we use the **Yamaha Steinberg IXO12 / IXO22 audio
-interface** for recordings.  If you are using a different setup, you can
-skip the following pages.
+interface** for recordings. Feel free to use any other setup that
+you may or may not already have. The only thing we do recommend is
+using the ASIO audio driver when working on Windows, as it can provide
+very low latencies.
+If you are using a different setup, you can ignore this section.
 
-This manual section is mostly adapted from the Steinberg website:
+This manual for the interfaces can be found at the Steinberg website directly:
 https://www.steinberg.net/audio-interfaces/ixo12/
-
-Yamaha Steinberg IXO12 / 22 manual
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**IXO 12**: single microphone input
-
-**IXO 22**: double microphone input
-
-.. image:: _static/images/image11.png
-   :width: 5.38617in
-
-1. Input 1 gain adjustment
-2. Mute input 1 (red light = muted)
-3. Input 1 for microphone
-4. Input 1 signal / peak display
-
-   - Red: −3 dBFS or higher
-   - Green: −20 dBFS to < −3 dBFS
-   - No light: < −20 dBFS
-
-   Adjust input gain so normal sound levels light up green, and peak
-   levels blink red briefly.
-
-5. Mute input 2 (second mic for IXO22; instrument input on IXO12)
-6. Input 2 for microphone (IXO22 only)
-7. Input 2 signal / peak display
-8. +48 V phantom power switch
-
-   - Turn **on** for condenser microphones without external power (e.g. RODE)
-   - **Do not** turn on for dynamic microphones with a separate power supply
-
-9. Jack plug adapter (e.g. digital instrument)
-
-   Connecting a digital instrument to IXO22 disables the second
-   microphone input.
-
-10. Loopback function display
-11. Monitor switch (loopback / direct monitoring)
-12. Direct monitoring display
-
-    - Mono |image5|: inputs 1+2 routed to LINE OUT / PHONES |image6|
-    - Stereo |image7|: input 1 = L, input 2 = R
-
-    Loopback and monitoring should always be **off** to avoid playback
-    feedback or mixing input with output.
-
-13. Input 2 gain adjustment
-14. Output level adjustment for LINE OUT L/R
-15. Power display (blinks if power supply is insufficient)
-16. PHONES |image9| adjustment (IXO22 only)
-17. PHONES |image10| plug for stereo headphones
-
-.. image:: _static/images/image15.png
-   :width: 5.62579in
-
-1. LINE OUT L/R connection for external speakers (jack plug)
-2. USB 2.0 port to connect to computer
-3. 5 V DC IN port for external power (only needed if your host device
-   cannot supply sufficient power, e.g. iPad; requires 5 V DC ≥ 500 mA)
-
-Yamaha Steinberg USB Driver
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Download the driver from the Steinberg website (available for macOS and
 Windows):
 
 https://o.steinberg.net/de/support/downloads_hardware/yamaha_steinberg_usb_driver.html
 
-Restart your computer after installation.
-
-Setting options in the driver
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Restart your computer after installation and adjust the driver options to your setup.
+Latency should be as low as possible, but make sure that the options are suited for 
+your setup, i.e. decreasing latency will need more computing power.
 
 .. image:: _static/images/image17.png
    :width: 3.07587in

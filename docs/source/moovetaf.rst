@@ -7,13 +7,13 @@ You can start MooveTaf directly from the terminal/ Windows PowerShell by typing 
 
 |A screen shot of a computer AI-generated content may be incorrect.|
 
-While recording, we strongly recommend assigning **high priority** to the running python program executing MooveTaf, as this can improve recording quality as well as classification accuracy and speed. To do so on Windows, open the Task Manager, in the tab *Details* search for python, right-click on your running task and *Set Priority* to *Real-Time*.
+.. note::
+   While recording, we strongly recommend assigning **high priority** to the running python program executing MooveTaf, as this can improve recording quality as well as classification accuracy and speed. To do so on Windows, open the Task Manager, in the tab *Details* search for python, right-click on your running task and *Set Priority* to *Real-Time*.
 
 Once started, the program will show you a list of all your connected **input and output devices** in a numerical order (Fig. 8). Behind each device, it is listed how many inputs (in) and outputs (out) are available. The program will ask you to choose your desired input device (microphone) and output device (speaker). They can be set by typing in the respective **device number** and
-
 pressing **Enter**. If one device offers input and output, the same number can be set for both.
 
-If you can’t find your desired devices in the list, check out chapter **1. Installation** for a possible solution.
+If you can’t find your desired devices in the list, check out section **Installation** for a possible solution.
 
 .. figure:: _static/images/image20.png
    :alt: A screenshot of a computer AI-generated content may be incorrect.
@@ -22,30 +22,30 @@ If you can’t find your desired devices in the list, check out chapter **1. Ins
 
    Figure 8: Starting MooveTaf
 
-Once you selected your input and output device, the program will start recording automatically.
+Once you selected your input and output device, the program will start recording automatically. The line **"Threshold triggered"** confirms that sound input was received and a recording has started. The lines stating that the file has been saved **("Saving Bout", ...)** confirm that your recording has ended and that the respective files are saved. If you don't see these lines, take a look in the FAQ's below.
 
 Baseline recordings
 -------------------
 
-When recording a bird for the first time, you need to perform some baseline recordings before training a classification network. With the first start of MooveTaf, the folder **“.moove”** is created. It contains all your recorded data, trained models and config settings (Fig. 9). Note that, on Linux and MacOS (and sometimes Windows) the “.moove” folder is hidden. On MacOS, it can be made visible pressing < CMD + shift + . > while in your user folder, on Linux it can be done using < Ctrl + H >. If you still can’t find it, search for “how to unhide folders”.
+When recording a bird for the first time, you need to perform some baseline recordings before training a classification network. With the first start of MooveTaf, the folder ``.moove`` is created. It contains all your recorded data, trained models and config settings (Fig. 9). Note that, on Linux and MacOS (and sometimes Windows) the ``.moove`` folder is hidden. On MacOS, it can be made visible pressing < CMD + shift + . > while in your user folder, on Linux it can be done using < Ctrl + H >. If you still can’t find it, search for “how to unhide folders”.
 
 .. figure:: _static/images/image21.png
    :alt: A screenshot of a computer AI-generated content may be incorrect.
    :width: 6.26806in
    :height: 3.88125in
 
-   Figure 9: Location of your “.moove” folder
+   Figure 9: Location of your .moove folder
 
-By default, it is saved within your **username** folder under **C:/Users/<YourUsername>/**. Once created, you can move the folder to your desired location and set this location in the terminal before starting the Moove applications. For that, use the following commands depending on your system (Fig. 10), replacing the directory with your actual path. Furthermore, you have to change the *global_dir* variable in the **config file** (Fig 13, pink box) to your actual path, e.g. C://<PathToFolder>/ or D://<PathToFolder>/.
+By default, it is saved within your **username** folder under **C:/Users/<YourUsername>/**. Once created, you can copy the folder to your desired location and set this location in the terminal before starting the Moove applications. For that, use the following commands depending on your system (Fig. 10), replacing the directory with your actual path. Furthermore, you have to change the *global_dir* variable in the ``config.ini`` file (Fig 13, pink box) to your actual path, e.g. C://<PathToFolder>/ or D://<PathToFolder>/.
 
 .. figure:: _static/images/image22.png
    :alt: Ein Bild, das Screenshot, Text, Software, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
    :width: 6.26806in
    :height: 1.82361in
 
-   Figure 10: Setting the “.moove” folder location
+   Figure 10: Setting the .moove folder location
 
-The folder structure for recorded data in *rec_data* is as follows and is parsed into the GUI in this way (Fig. 11). In case one folder doesn’t exist and the structure changes, your data cannot be found correctly. The names of your parent bird folder and experiment folder are set in the config (see 2.1.1).
+The folder structure for recorded data in *rec_data* is as follows and is parsed into the GUI in this way (Fig. 11). In case one folder doesn’t exist and the structure changes, your data cannot be found correctly. The names of your parent bird folder and experiment folder are set in the config (see section *Setting the config*).
 
 .. figure:: _static/images/image23.png
    :alt: Ein Bild, das Text, Diagramm, Reihe, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
@@ -63,12 +63,17 @@ A **batch.txt** file will be automatically created once the recording starts. It
 
    Figure 12: Structure of a batch file
 
-While recording with MooveTaf, we don’t recommend opening the MooveGUI. Due to parallelly accessing the batch.txt file, errors while writing the batch.txt file in MooveTaf can occur. If errors happen, you can update and rewrite the batch.txt file in the GUI (see 3.2.) or manually correct the batch.txt file.
+.. note::
+   While recording with MooveTaf, we don’t recommend opening the MooveGUI. Due to parallelly accessing the batch.txt file, 
+   errors while writing the batch.txt file in MooveTaf can occur. If errors happen, you can update and rewrite the batch.txt 
+   file in the GUI (see section *MooveGUI - Main window*) or manually correct the batch.txt file.
 
 Setting the config
 ~~~~~~~~~~~~~~~~~~
 
-The default version of the config file can be found in the moove folder in your AppData (see 1. Installation) (Fig. 13). However, changes in the config should always be made in the **config file** in the **.moove** folder. It is an *.ini* file that can be opened and edited with any text editor program. Remember to save your changes once you’re done and before starting Moove.
+The default version of the config file can be found in the moove folder in your AppData (see section *Installation*) (Fig. 13). 
+However, changes in the config should always be made in the ``config.ini`` file in the ``.moove`` folder. 
+It is an *.ini* file that can be opened and edited with any text editor program. Remember to save your changes once you’re done and before starting Moove.
 
 The line **global_dir** lets you set your folder saving destination (pink box).
 
@@ -79,14 +84,22 @@ The line **global_dir** lets you set your folder saving destination (pink box).
 
    Figure 13: Config settings for baseline recordings
 
-In the section below [GUI], settings for opening the MooveGUI can be edited (blue box, see 3.1 Setting the config). In the green highlighted box below [TAF], settings for using MooveTaf can be found. The parameters relevant for a first-time setup and baseline recordings are described in the table below (Table 1). For the recording, the bird_name and expreriment_name have to be individually adjusted. **Don’t use spaces in the bird_name and experiment_name parameter.** The section title bird_x has to be renamed to be the same as the bird_name. For different birds, the whole section [bird_x] can be copied and added with the different bird names as titles. All the following parameters will be described in a later chapter (2.2. Targeting).
+In the section below [GUI], settings for opening the MooveGUI can be edited (blue box, see section *MooveGUI - Setting the config*). 
+In the green highlighted box below [TAF], settings for using MooveTaf can be found. The parameters relevant for a **first-time setup** 
+and **baseline recordings** are described in the table below (Table 1). For the recording, the **bird_name** and **experiment_name**
+have to be individually changed. 
+The section title bird_x has to be renamed to be the same as the bird_name. For different birds, the whole section [bird_x] can be copied 
+and added with the different bird names as titles. All the following parameters will be described in a later chapter (see below *Targeting*).
+
+.. note::
+      Don’t use spaces in the bird_name and experiment_name parameter.
 
 .. table:: Table 1: Parameters in the config for MooveTaf
 
    +-------------------------+---------------------+---------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**           | **Default Value**   | **Description**                                                                                                           |
    +=========================+=====================+===========================================================================================================================+
-   | bird_name               | ye00pu07            | Specifies the name of the bird                                                                                            |
+   | bird_name               | bird_x              | Specifies the name of the bird                                                                                            |
    +-------------------------+---------------------+---------------------------------------------------------------------------------------------------------------------------+
    | experiment_name         | baseline            | Name of the experiment                                                                                                    |
    +-------------------------+---------------------+---------------------------------------------------------------------------------------------------------------------------+
