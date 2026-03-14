@@ -48,7 +48,7 @@ chapter_map = {
     "Installation": "installation",
     "MooveTaf": "moovetaf",
     "MooveGUI": "moovegui",
-    "REC file and Feedback Information from Training": "rec_file",
+    "REC file and Feedback Information": "rec_file",
     "Loading previously recorded data": "loading_data",
     "FAQ": "faq",
     "References": "references",

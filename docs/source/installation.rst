@@ -193,7 +193,7 @@ replace the PortAudio binary manually:
    :alt: PortAudio DLL replacement
    :width: 6.26806in
 
-   Figure: The portaudio-binaries folder with both DLL variants.
+   The portaudio-binaries folder with both DLL variants.
 
 Custom PortAudio path
 ~~~~~~~~~~~~~~~~~~~~~
@@ -273,7 +273,7 @@ You usually do not need to access these folders directly.
    :alt: Moove applications in Scripts folder
    :width: 6.26806in
 
-   Figure: Moove entry points in the Scripts folder.
+   Moove entry points in the Scripts folder.
 
 (Optional) Hardware we are currently using
 -------------------------------
