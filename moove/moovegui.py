@@ -336,7 +336,7 @@ class MooveMainWindow(QMainWindow):
         btn("Next", lambda: (s.change_file(1), plot_data(s)))
         btn("  <  ", lambda: swipe_left(s))
         btn("  >  ", lambda: swipe_right(s))
-        btn("⌂", lambda: unzoom(s))
+        btn("🏠", lambda: unzoom(s))
         btn("Zoom", lambda: zoom(s))
         btn("Unzoom", lambda: unzoom_small(s))
         btn("Crop", lambda: handle_crop(s))

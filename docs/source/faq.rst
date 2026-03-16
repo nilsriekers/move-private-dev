@@ -125,11 +125,12 @@ Folders beginning with ``.`` are hidden by default on Linux and macOS:
 - **macOS**: Press ``Cmd + Shift + .`` in Finder
 - **Linux**: Press ``Ctrl + H`` in your file manager
 
-The folder location can be changed -- see *MooveTAF* for details. If you do so, the files fill be saved in that directory instead of your home directory.
+The folder location can be changed -- see *MooveTAF* for details. If you do so, the files fill be saved in that directory 
+instead of your home directory.
 
 .. note::
    Do not delete the ``.moove`` folder that was created in your home directory initially, as the new saving directory
-   has to be set here in the initial ``config`` file. Any other changes to the ``config`` have to be made within the new directory.
+   has to be set here in the initial ``config`` file. Any changes to the ``config`` have to be made within the original directory.
 
 Why are there big red "stripes" in the middle of my recordings?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
