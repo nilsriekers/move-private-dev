@@ -49,8 +49,12 @@ while in your user folder, on Linux it can be done using < Ctrl + H >. If yo
 By default, it is saved within your **username** folder under **C:/Users/<YourUsername>/**. Once created, you can **copy** the folder to your 
 desired location and set this location in the terminal before starting the Moove applications. For that, use the following commands 
 depending on your system, replacing the directory with your actual path. Furthermore, you have to change the *global_dir* variable 
-in the ``config.ini`` file (pink box) to your actual path, e.g. C://<PathToFolder>/ or D://<PathToFolder>/. You need to change that variable in
-both ``config`` files in both folders.
+in the ``config.ini`` file (pink box) to your actual path, e.g. C://<PathToFolder>/ or D://<PathToFolder>/. Even after changing the 
+directory, all config settings have to be made in the original ``config`` file in your home directory.
+
+.. note::
+   If you don't copy the .moove folder to the new destination, it will only create the folders ``rec_data`` and 
+   ``playbacks`` when starting to record. Other folders have to be copied/ created manually (pay attention to spelling).
 
 .. figure:: _static/images/image22.png
    :alt: Ein Bild, das Screenshot, Text, Software, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
