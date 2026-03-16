@@ -46,10 +46,11 @@ while in your user folder, on Linux it can be done using < Ctrl + H >. If yo
 
    Location of your .moove folder
 
-By default, it is saved within your **username** folder under **C:/Users/<YourUsername>/**. Once created, you can copy the folder to your 
+By default, it is saved within your **username** folder under **C:/Users/<YourUsername>/**. Once created, you can **copy** the folder to your 
 desired location and set this location in the terminal before starting the Moove applications. For that, use the following commands 
 depending on your system, replacing the directory with your actual path. Furthermore, you have to change the *global_dir* variable 
-in the ``config.ini`` file (pink box) to your actual path, e.g. C://<PathToFolder>/ or D://<PathToFolder>/.
+in the ``config.ini`` file (pink box) to your actual path, e.g. C://<PathToFolder>/ or D://<PathToFolder>/. You need to change that variable in
+both ``config`` files in both folders.
 
 .. figure:: _static/images/image22.png
    :alt: Ein Bild, das Screenshot, Text, Software, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
