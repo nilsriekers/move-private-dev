@@ -45,4 +45,5 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "pytest>=8.4.2",
+    "pytest-qt>=4.5.0",
 ]
