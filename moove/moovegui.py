@@ -20,7 +20,7 @@ from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QComboBox, QPushButton, QCheckBox, QRadioButton, QButtonGroup,
-    QMessageBox, QSizePolicy,
+    QMessageBox, QSizePolicy, QMenu
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QPixmap, QPalette
@@ -32,7 +32,7 @@ from moove.utils import (
     handle_keypress, zoom, unzoom, swipe_left, swipe_right, handle_playback,
     handle_delete, handle_crop, open_resegment_window, update,
     open_cluster_window, open_training_window, open_relabel_window, find_batch_files,
-    create_batch_file,
+    create_batch_file, unzoom_small
 )
 from moove.models.ConvMLP import ConvMLP
 from moove.models.CNN import CNN
@@ -387,6 +387,7 @@ class MooveMainWindow(QMainWindow):
                                 lambda ev: handle_keypress(ev, s, self.radio_adapter))
         self.canvas.mpl_connect('button_press_event', lambda ev: select_event(ev, s))
         self.canvas.mpl_connect('key_press_event', lambda ev: edit_syllable(ev, s))
+        self.canvas.mpl_connect('button_press_event', self._on_right_click)
 
     # ------------------------------------------------------------------
     # Slots
@@ -489,6 +490,25 @@ class MooveMainWindow(QMainWindow):
             self.app_state.selected_syllable_index = None
             self.canvas.draw_idle()
 
+    def _on_right_click(self, event):
+
+        # Nur Rechtsklick
+        if event.button != 3:
+            return
+
+        # Nur wenn ax1 oder ax3
+        if event.inaxes not in (self.ax1, self.ax3):
+            return
+
+        menu = QMenu(self)
+
+        unzoom_action = menu.addAction("Unzoom")
+
+        action = menu.exec(self.mapToGlobal(self.cursor().pos()))
+
+        if action == unzoom_action:
+            unzoom_small(self.app_state)
+            
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------

@@ -34,6 +34,21 @@ def unzoom(app_state):
     app_state.draw_canvas()
 
 
+def unzoom_small(app_state):
+    """Zoom out by inreasing the x-axis range by 30%."""
+    x_start, x_end = app_state.ax1.get_xlim()
+    x_center = (x_start + x_end) / 2
+    x_diff = x_end - x_start
+    new_diff = x_diff * 1.3
+
+    app_state.ax1.set_xlim(x_center - new_diff / 2, x_center + new_diff / 2)
+    app_state.ax2.set_xlim(x_center - new_diff / 2, x_center + new_diff / 2)
+    app_state.ax3.set_xlim(x_center - new_diff / 2, x_center + new_diff / 2)
+
+    app_state.logger.debug("Zoomed in to new x-axis range: (%f, %f)", x_center - new_diff / 2, x_center + new_diff / 2)
+    app_state.draw_canvas()
+
+
 def swipe_left(app_state):
     """Swipe view to the left by moving the x-axis range left by 10%."""
     x_start, x_end = app_state.ax1.get_xlim()
