@@ -482,12 +482,19 @@ class MooveMainWindow(QMainWindow):
             return
         value = self._EDIT_MAP.get(btn_id, "None")
         self.app_state.edit_type = value
-        cursor = Qt.CursorShape.CrossCursor if value != "None" else Qt.CursorShape.ArrowCursor
+        # cursor = Qt.CursorShape.CrossCursor if value != "None" else Qt.CursorShape.ArrowCursor
+        cursor = (
+            Qt.CursorShape.ArrowCursor
+            if value in ("None", "Label Interactive")
+            else Qt.CursorShape.CrossCursor
+        )
         self.canvas.setCursor(cursor)
         if value == "None" and self.app_state.selected_syllable_index is not None:
             if self.app_state.ax2.texts:
                 self.app_state.ax2.texts[self.app_state.selected_syllable_index].set_color('black')
             self.app_state.selected_syllable_index = None
+            self.canvas.draw_idle()
+        elif value == 'Label Interactive':
             self.canvas.draw_idle()
             
     # ------------------------------------------------------------------
