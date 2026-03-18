@@ -276,7 +276,9 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     invoke_in_main_thread(progressbar.hide)
 
     invoke_in_main_thread(lambda: show_info(
-        app_state.training_window, "Info", "The segmentation training dataset has been created successfully!"))
+        app_state.training_window, "Info",
+        f"The segmentation training dataset has been created successfully!\n"
+        f"Features and metadata saved as {dataset_name}_seg.pkl"))
     invoke_in_main_thread(lambda: app_state.change_file(0))
 
 
@@ -322,7 +324,7 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
             })
             notmat_path = os.path.join(app_state.data_dir, display_data["file_name"] + ".not.mat")
             save_notmat(notmat_path, display_data)
-            app_state.logger.info(f"ML segmentation: saved {len(onsets)} segments to {notmat_path}")
+            # app_state.logger.info(f"ML segmentation: saved {len(onsets)} segments to {notmat_path}")
         except Exception as e:
             app_state.logger.error(f"File {file_path} could not be processed correctly: {e}. Check manually.")
             import traceback

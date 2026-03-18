@@ -276,13 +276,14 @@ def save_features(app_state, dataset_name, arr, chunk_size=64, hist_size=3, num_
             end_idx = (i + 1) * split_size if i < num_files - 1 else arr.shape[0]
             with open(f'training_data/{dataset_name}_{i}_seg.pkl', 'wb') as f:
                 pickle.dump({'features': arr[start_idx:end_idx], 'metadata': metadata, 'syllables': num_syls}, f)
-
-    if num_files is None or num_files <= 1:
-        invoke_in_main_thread(lambda: show_info(
-            None, "Info", f"Features and metadata saved as {dataset_name}_seg.pkl"))
-    else:
-        invoke_in_main_thread(lambda: show_info(
-            None, "Info", f"Features and metadata saved as {dataset_name}_0_seg.pkl to {dataset_name}_{num_files-1}_seg.pkl"))
+    # info box combined with box in segment_util.py line 278
+    # if num_files is None or num_files <= 1:
+    #     invoke_in_main_thread(lambda: show_info(
+    #         None, "Info", f"Features and metadata saved as {dataset_name}_seg.pkl"))
+    # else:
+    #     invoke_in_main_thread(lambda: show_info(
+    #         None, "Info",
+    #         f"Features and metadata saved as {dataset_name}_0_seg.pkl to {dataset_name}_{num_files-1}_seg.pkl"))
 
 
 def remove_pkl_suffix(filename):
