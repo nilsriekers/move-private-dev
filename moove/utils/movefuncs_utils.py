@@ -3,7 +3,6 @@ import numpy as np
 import os
 import re
 import scipy.io.wavfile as wav
-import sounddevice as sd
 import threading
 from jinja2 import Template
 from pathlib import Path
@@ -12,6 +11,21 @@ from scipy.io import savemat
 from PyQt6.QtWidgets import QMessageBox
 
 from moove.qt_helpers import invoke_in_main_thread, set_combo_items
+
+try:
+    import sounddevice as sd
+except Exception:
+    sd = None
+
+
+def _mat_scalar_or_empty(value):
+    """Return float64 scalar for scalar-like values, else an empty float64 array."""
+    if value is None:
+        return np.array([], dtype=np.float64)
+    arr = np.asarray(value)
+    if arr.size == 0:
+        return np.array([], dtype=np.float64)
+    return np.float64(arr.flat[0])
 
 
 def save_cbin(filepath, data, sample_freq):
@@ -50,10 +64,10 @@ def save_notmat(filename, notmat_dict):
         'labels': notmat_dict['labels'],
         'onsets': onsets.reshape(-1, 1),
         'offsets': offsets.reshape(-1, 1),
-        'min_int': np.float64(notmat_dict['min_int']) if 'min_int' in notmat_dict and notmat_dict['min_int'] else np.array([], dtype=np.float64),
-        'min_dur': np.float64(notmat_dict['min_dur']) if 'min_dur' in notmat_dict and notmat_dict['min_dur'] else np.array([], dtype=np.float64),
-        'threshold': np.float64(notmat_dict['threshold']) if 'threshold' in notmat_dict and notmat_dict['threshold'] else np.array([], dtype=np.float64),
-        'sm_win': np.float64(notmat_dict['sm_win']) if 'sm_win' in notmat_dict and notmat_dict['sm_win'] else np.array([], dtype=np.float64)
+        'min_int': _mat_scalar_or_empty(notmat_dict.get('min_int')),
+        'min_dur': _mat_scalar_or_empty(notmat_dict.get('min_dur')),
+        'threshold': _mat_scalar_or_empty(notmat_dict.get('threshold')),
+        'sm_win': _mat_scalar_or_empty(notmat_dict.get('sm_win'))
     }
 
     header = save_dict['__header__']
@@ -164,6 +178,9 @@ def extract_raw_audio(full_audio_data, chunk_size):
 
 def play_sound(display_dict, ax1):
     '''Plays the sound of the displayed data.'''
+    if sd is None:
+        return
+
     x_start, x_end = ax1.get_xlim()
 
     x1_border = int(x_start * display_dict["sampling_rate"])
