@@ -20,13 +20,17 @@ def load_classification_checkmarks(all_files):
     unclass_files = []
     for file in all_files:
         recfile_path = os.path.splitext(file)[0] + ".rec"
+        if not os.path.exists(recfile_path):
+            # Missing recfile should not block relabeling.
+            unclass_files.append(file)
+            continue
         with open(recfile_path, "r") as f:
             content = f.read()
 
         hand_segmented_pattern = r"Hand Classified = (\d+)"
         hand_segmented_match = re.search(hand_segmented_pattern, content)
 
-        if hand_segmented_match.group(1) == '0':
+        if not hand_segmented_match or hand_segmented_match.group(1) == '0':
             unclass_files.append(file)
 
     return unclass_files
@@ -210,8 +214,17 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
 
     model.to(device).eval()
 
+    total_selected = len(files)
     if not checkbox_ow:
         files = load_classification_checkmarks(files)
+    skipped_preclassified = total_selected - len(files)
+
+    if len(files) == 0:
+        if skipped_preclassified > 0:
+            show_info(app_state.relabel_window, "Info", f"No files available for relabeling. Skipped {skipped_preclassified} already classified file(s).")
+        else:
+            show_info(app_state.relabel_window, "Info", "No files available for relabeling.")
+        return
 
     win = app_state.relabel_window
     progressbar = win.progressbar
@@ -222,7 +235,8 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
     def thread_wrapper():
         current_thread = threading.current_thread()
         try:
-            ml_classify_file(app_state, progressbar, len(files), files, model, metadata, device)
+            ml_classify_file(app_state, progressbar, len(files), files, model, metadata, device,
+                             total_selected=total_selected, skipped_preclassified=skipped_preclassified)
         finally:
             app_state.remove_thread(current_thread)
 
@@ -231,7 +245,8 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
     thread.start()
 
 
-def ml_classify_file(app_state, progressbar, max_value, all_files, model, metadata, device):
+def ml_classify_file(app_state, progressbar, max_value, all_files, model, metadata, device,
+                     total_selected=None, skipped_preclassified=0):
     """Perform classification on each file and update labels."""
     from moove.utils import get_display_data, plot_data, save_notmat, seconds_to_index
 
@@ -243,6 +258,8 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     nperseg, noverlap, nfft = int(metadata['nperseg']), int(metadata['noverlap']), int(metadata['nfft'])
     lowcut, highcut, int_to_label = int(metadata['lowcut']), int(metadata['highcut']), metadata['int_to_label']
     input_array_size = input_length * chunk_size
+    processed_count = 0
+    failed_count = 0
 
     for i, file_i in enumerate(all_files):
         try:
@@ -271,10 +288,12 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
             file_data["labels"] = ''.join(labels)
             save_notmat(os.path.join(app_state.data_dir, f"{file_data['file_name']}.not.mat"), file_data)
+            processed_count += 1
 
         except Exception as e:
             app_state.logger.error(f"File {file_i} could not be processed correctly: {e}. Check manually.")
-            return
+            failed_count += 1
+            continue
 
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
@@ -285,5 +304,16 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     invoke_in_main_thread(app_state.reset_edit_type)
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
+
+    if total_selected is None:
+        total_selected = len(all_files)
+    final_skipped = max(total_selected - processed_count - failed_count, 0)
+    summary = (
+        "Relabeling completed.\n"
+        f"Selected: {total_selected}\n"
+        f"Processed: {processed_count}\n"
+        f"Failed: {failed_count}\n"
+        f"Skipped: {final_skipped}"
+    )
     invoke_in_main_thread(lambda: show_info(
-        app_state.relabel_window, "Info", "Relabeling of files completed successfully!"))
+        app_state.relabel_window, "Info", summary))

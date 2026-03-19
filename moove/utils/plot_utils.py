@@ -202,6 +202,24 @@ def plot_data(app_state):
     """Plot new data and update the application state."""
     from moove.utils.file_utils import get_file_data_by_index, get_display_data
 
+    def _load_checkbox_flags(rec_path):
+        try:
+            rec_data = load_recfile(rec_path)
+            return int(rec_data.get("hand_segmented", 0)), int(rec_data.get("hand_classified", 0))
+        except Exception as exc:
+            app_state.logger.warning("Could not load recfile '%s': %s. Falling back to unchecked state.", rec_path, exc)
+            return 0, 0
+
+    def _sync_checkbox_widgets(segmented, classified):
+        if app_state.segmented_checkbox is not None:
+            app_state.segmented_checkbox.blockSignals(True)
+            app_state.segmented_checkbox.setChecked(bool(segmented))
+            app_state.segmented_checkbox.blockSignals(False)
+        if app_state.classified_checkbox is not None:
+            app_state.classified_checkbox.blockSignals(True)
+            app_state.classified_checkbox.setChecked(bool(classified))
+            app_state.classified_checkbox.blockSignals(False)
+
     try:
         file_path = get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)
         app_state.display_dict = get_display_data(file_path, app_state.config)
@@ -218,11 +236,11 @@ def plot_data(app_state):
         original_y_range_ax3 = (ax3.get_ylim()[0], ax3.get_ylim()[1])
         app_state.set_original_y_range_ax1(original_y_range_ax1, original_y_range_ax2, original_y_range_ax3)
 
-        # Load and set segmented and classified checkboxes
-        hand_segmented = load_recfile(os.path.splitext(file_path["file_path"])[0] + ".rec")["hand_segmented"]
-        hand_classified = load_recfile(os.path.splitext(file_path["file_path"])[0] + ".rec")["hand_classified"]
+        # Load and set segmented/classified state for checkboxes.
+        hand_segmented, hand_classified = _load_checkbox_flags(os.path.splitext(file_path["file_path"])[0] + ".rec")
         app_state.segmented_var.set(str(hand_segmented))
         app_state.classified_var.set(str(hand_classified))
+        _sync_checkbox_widgets(hand_segmented, hand_classified)
         app_state.edit_type = "None"
 
         app_state.logger.debug("Recfile loaded and checkboxes updated for file: %s", file_path["file_name"])
@@ -262,11 +280,11 @@ def plot_data(app_state):
                 original_y_range_ax3 = (ax3.get_ylim()[0], ax3.get_ylim()[1])
                 app_state.set_original_y_range_ax1(original_y_range_ax1, original_y_range_ax2, original_y_range_ax3)
 
-                # Load and set segmented and classified for the checkboxes
-                hand_segmented = load_recfile(os.path.splitext(fallback_file_data["file_path"])[0] + ".rec")["hand_segmented"]
-                hand_classified = load_recfile(os.path.splitext(fallback_file_data["file_path"])[0] + ".rec")["hand_classified"]
+                # Load and set segmented/classified state for checkboxes.
+                hand_segmented, hand_classified = _load_checkbox_flags(os.path.splitext(fallback_file_data["file_path"])[0] + ".rec")
                 app_state.segmented_var.set(str(hand_segmented))
                 app_state.classified_var.set(str(hand_classified))
+                _sync_checkbox_widgets(hand_segmented, hand_classified)
                 app_state.edit_type = "None"
 
                 app_state.reset_edit_type_gui()
@@ -278,3 +296,6 @@ def plot_data(app_state):
                 app_state.logger.error("Fallback plot also failed: %s", fallback_error)
         else:
             app_state.logger.error("No fallback file available.")
+            app_state.segmented_var.set("0")
+            app_state.classified_var.set("0")
+            _sync_checkbox_widgets(0, 0)

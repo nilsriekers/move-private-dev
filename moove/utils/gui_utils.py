@@ -81,8 +81,13 @@ def swipe_right(app_state):
 
 def update(app_state):
     """Update all batch files and update the GUI."""
-    from moove.utils.file_utils import find_batch_files, get_file_data_by_index, read_batch, create_batch_file
-    from moove.utils.plot_utils import update_plots
+    from moove.utils.file_utils import find_batch_files, read_batch, create_batch_file
+    from moove.utils.plot_utils import plot_data
+
+    previous_batch = app_state.current_batch_file
+    previous_file = None
+    if app_state.song_files and app_state.current_file_index is not None and app_state.current_file_index < len(app_state.song_files):
+        previous_file = app_state.song_files[app_state.current_file_index]
 
     batch_files = find_batch_files(app_state.data_dir)
     valid_files = [f for f in os.listdir(app_state.data_dir) if f.endswith('.wav') or f.endswith('.cbin')]
@@ -103,10 +108,28 @@ def update(app_state):
 
     app_state.logger.info("Batch files have been updated.")
 
-    file_path = get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)
-    set_combo_items(app_state.batch_combobox, batch_files)
-    app_state.song_files = read_batch(app_state.data_dir, app_state.current_batch_file)
+    if previous_batch in batch_files:
+        app_state.current_batch_file = previous_batch
+    elif "batch.txt" in batch_files:
+        app_state.current_batch_file = "batch.txt"
+    else:
+        app_state.current_batch_file = batch_files[0] if batch_files else ""
+
+    set_combo_items(app_state.batch_combobox, batch_files, app_state.current_batch_file)
+    app_state.song_files = read_batch(app_state.data_dir, app_state.current_batch_file) if app_state.current_batch_file else []
+
+    if previous_file in app_state.song_files:
+        app_state.current_file_index = app_state.song_files.index(previous_file)
+    else:
+        app_state.current_file_index = 0 if app_state.song_files else None
+
     set_combo_items(app_state.combobox, app_state.song_files,
-                    app_state.song_files[app_state.current_file_index] if app_state.song_files else None)
-    update_plots(app_state.display_dict, app_state, file_path)
-    app_state.logger.info("Plots have been updated.")
+                    app_state.song_files[app_state.current_file_index] if app_state.song_files else "")
+
+    if app_state.song_files:
+        plot_data(app_state)
+        app_state.logger.info("Plots have been updated.")
+    else:
+        for ax in [app_state.ax1, app_state.ax2, app_state.ax3]:
+            ax.clear()
+        app_state.draw_canvas()

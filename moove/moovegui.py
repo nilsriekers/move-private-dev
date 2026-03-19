@@ -11,6 +11,10 @@ import signal
 import time
 from pathlib import Path
 
+# Import torch early to avoid DLL/OpenMP conflicts on Windows when
+# scientific/GUI stacks (e.g., matplotlib) load runtime DLLs first.
+import torch
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -25,7 +29,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QPixmap, QPalette
 
-from moove.qt_helpers import QRangeSliderV, RadioAdapter, set_combo_items, invoke_in_main_thread
+from moove.qt_helpers import QRangeSliderV, RadioAdapter, set_combo_items, invoke_in_main_thread, show_info
 from moove.utils import (
     get_display_data, get_directories, read_batch, get_file_data_by_index,
     save_seg_class_recfile, plot_data, select_event, edit_syllable,
@@ -232,9 +236,6 @@ class MooveMainWindow(QMainWindow):
                     fh.write('\n'.join(f for f in keep if f in valid_files))
         s.song_files = read_batch(s.data_dir, s.current_batch_file)
 
-        file_path = get_file_data_by_index(s.data_dir, s.song_files, s.current_file_index, s)
-        s.display_dict = get_display_data(file_path, s.config)
-
         # File combobox
         self.file_combo = QComboBox()
         self.file_combo.setMinimumWidth(260)
@@ -285,9 +286,12 @@ class MooveMainWindow(QMainWindow):
         self.canvas.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         s.set_axes(self.ax1, self.ax2, self.ax3)
         s.set_canvas(self.canvas)
-        s.display_dict = get_display_data(
-            get_file_data_by_index(s.data_dir, s.song_files, s.current_file_index, s),
-            s.config)
+        if s.song_files:
+            s.display_dict = get_display_data(
+                get_file_data_by_index(s.data_dir, s.song_files, s.current_file_index, s),
+                s.config)
+        else:
+            s.display_dict = None
         s.ax3_background = s.canvas.copy_from_bbox(s.ax3.bbox)
 
         plot_row.addWidget(self.canvas, stretch=1)
@@ -417,7 +421,12 @@ class MooveMainWindow(QMainWindow):
         s.song_files = read_batch(s.data_dir, s.current_batch_file)
         set_combo_items(self.file_combo, s.song_files,
                         s.song_files[s.current_file_index] if s.song_files else None)
-        plot_data(s)
+        if s.song_files:
+            plot_data(s)
+        else:
+            for ax in [s.ax1, s.ax2, s.ax3]:
+                ax.clear()
+            s.canvas.draw()
 
     def _on_file_changed(self):
         s = self.app_state
@@ -457,7 +466,9 @@ class MooveMainWindow(QMainWindow):
         s.classified_var.set(cla)
         fp = get_file_data_by_index(s.data_dir, s.song_files, s.current_file_index, s)
         rec_path = os.path.splitext(fp["file_path"])[0] + ".rec"
-        save_seg_class_recfile(rec_path, seg, cla)
+        saved = save_seg_class_recfile(rec_path, seg, cla)
+        if not saved:
+            show_info(self, "Error", f"Could not save status because rec file is missing:\n{rec_path}")
 
     def _on_rect_select(self, eclick, erelease):
         if abs(eclick.xdata - erelease.xdata) * 1000 < 5:

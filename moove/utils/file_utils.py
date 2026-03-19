@@ -50,8 +50,11 @@ def find_batch_files(day_path):
 def read_batch(day_path, batch_file="batch.txt"):
     """Read and return the contents of the specified batch file as a list of lines."""
     file_path = os.path.join(day_path, batch_file)
-    with open(file_path, "r") as file:
-        content = file.readlines()
+    try:
+        with open(file_path, "r") as file:
+            content = file.readlines()
+    except FileNotFoundError:
+        return []
     return [line.strip() for line in content]
 
 
@@ -67,12 +70,14 @@ def remove_line(file_path, rm_line):
 def get_file_data_by_index(path, song_files, file_index, app_state):
     """Retrieve file data by index from the app state.
        Delete entry from song list and all batch files if song file is missing."""
-    try:
-        current_file = song_files[file_index]
-    except IndexError:
+    if not song_files:
+        raise FileNotFoundError("No files available in the selected batch.")
+
+    if file_index is None or file_index < 0 or file_index >= len(song_files):
         app_state.current_file_index = 0
-        print(f"File not found, entry removed - defaulting to first file.")
         current_file = song_files[0]
+    else:
+        current_file = song_files[file_index]
 
     file_path = os.path.join(os.getcwd(), path, current_file)
     file_data_dict = {"file_name": current_file, "file_path": file_path}
@@ -95,6 +100,9 @@ def get_display_data(file_data_dict, config):
     file_name = file_data_dict["file_name"]
     file_path = file_data_dict["file_path"].replace("wsl$", "wsl.localhost")
     notmat_dict = {}
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Audio file does not exist: {file_path}")
 
     if file_name.endswith(".cbin"):
         song_data, sampling_rate = evfuncs.load_cbin(file_path)
@@ -149,9 +157,10 @@ def save_seg_class_recfile(filepath, segmented, classified):
 
         with open(filepath, 'w') as f:
             f.writelines(new_lines)
+        return True
 
     except FileNotFoundError:
-        pass
+        return False
 
 
 def get_files_for_day(app_state, bird, experiment, day, batch_file="batch.txt"):
@@ -227,13 +236,15 @@ def filter_segmented_files(files):
     segment_those_files = []
     for file in files:
         recfile_path = os.path.splitext(file)[0] + ".rec"
+        if not os.path.exists(recfile_path):
+            continue
         with open(recfile_path, "r") as f:
             content = f.read()
 
         hand_segmented_pattern = r"Hand Segmented = (\d+)"
         hand_segmented_match = re.search(hand_segmented_pattern, content)
 
-        if hand_segmented_match.group(1) == '1':
+        if hand_segmented_match and hand_segmented_match.group(1) == '1':
             segment_those_files.append(file)
 
     print(f"Total segmented files found: {len(segment_those_files)}")
@@ -245,13 +256,15 @@ def filter_classified_files(files):
     classify_those_files = []
     for file in files:
         recfile_path = os.path.splitext(file)[0] + ".rec"
+        if not os.path.exists(recfile_path):
+            continue
         with open(recfile_path, "r") as f:
             content = f.read()
 
         hand_segmented_pattern = r"Hand Classified = (\d+)"
         hand_segmented_match = re.search(hand_segmented_pattern, content)
 
-        if hand_segmented_match.group(1) == '1':
+        if hand_segmented_match and hand_segmented_match.group(1) == '1':
             classify_those_files.append(file)
 
     print(f"Total classified files found: {len(classify_those_files)}")
