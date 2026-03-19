@@ -1,14 +1,14 @@
 name: Deploy Sphinx docs to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+
+env:
+  # Opt in early so Node 20 deprecation warnings do not become a surprise.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 concurrency:
   group: pages
@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -30,13 +32,25 @@ jobs:
       - name: Build HTML
         run: sphinx-build -b html docs/source docs/build/html
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload docs artifact (for debugging and local download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sphinx-html
+          path: docs/build/html
+
+      - name: Upload Pages artifact (prod repo only)
+        if: github.repository == 'veitlab/moove'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: docs/build/html
 
   deploy:
+    if: github.repository == 'veitlab/moove'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
