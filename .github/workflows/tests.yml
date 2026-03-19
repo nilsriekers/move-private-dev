@@ -47,7 +47,7 @@ jobs:
       - name: Run tests
         run: uv run pytest -q
 
-        - name: Diagnostics on failure
+      - name: Diagnostics on failure
         if: failure()
         shell: bash
         run: |
