@@ -429,6 +429,7 @@ class MooveMainWindow(QMainWindow):
             s.canvas.draw()
 
     def _on_file_changed(self):
+        self.app_state.selected_syllable_index = None
         s = self.app_state
         selected = self.file_combo.currentText()
         if selected and selected in s.song_files:
@@ -501,8 +502,9 @@ class MooveMainWindow(QMainWindow):
         )
         self.canvas.setCursor(cursor)
         if value == "None" and self.app_state.selected_syllable_index is not None:
-            if self.app_state.ax2.texts:
+            if len(self.app_state.ax2.texts) <= self.app_state.selected_syllable_index:
                 self.app_state.ax2.texts[self.app_state.selected_syllable_index].set_color('black')
+                # self.app_state.ax2.texts[:].set_color('black') # better/other solution than changing 'if' statement
             self.app_state.selected_syllable_index = None
             self.canvas.draw_idle()
         elif value == 'Label Interactive':
