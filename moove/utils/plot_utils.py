@@ -212,13 +212,13 @@ def plot_data(app_state):
 
     def _sync_checkbox_widgets(segmented, classified):
         if app_state.segmented_checkbox is not None:
-            app_state.segmented_checkbox.blockSignals(True)
+            # app_state.segmented_checkbox.blockSignals(True)
             app_state.segmented_checkbox.setChecked(bool(segmented))
-            app_state.segmented_checkbox.blockSignals(False)
+            # app_state.segmented_checkbox.blockSignals(False)
         if app_state.classified_checkbox is not None:
-            app_state.classified_checkbox.blockSignals(True)
+            # app_state.classified_checkbox.blockSignals(True)
             app_state.classified_checkbox.setChecked(bool(classified))
-            app_state.classified_checkbox.blockSignals(False)
+            # app_state.classified_checkbox.blockSignals(False)
 
     try:
         file_path = get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)
