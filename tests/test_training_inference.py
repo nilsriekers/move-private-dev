@@ -95,6 +95,7 @@ class TestSegmentationTrainingSmoke:
     """Verify that a minimal training loop converges (loss decreases)."""
 
     def test_one_epoch_loss_decreases(self):
+        torch.manual_seed(42)
         model = ConvMLP(input_size=64)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
         criterion = torch.nn.BCEWithLogitsLoss()
@@ -121,6 +122,7 @@ class TestClassificationTrainingSmoke:
     """Verify that a minimal classification training loop works."""
 
     def test_one_epoch_loss_decreases(self):
+        torch.manual_seed(42)
         num_classes = 4
         model = CNN(input_shape=(1, 33, 22), num_classes=num_classes)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)

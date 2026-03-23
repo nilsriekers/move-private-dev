@@ -12,7 +12,7 @@ import time
 import shutil
 import sounddevice as sd
 from scipy.signal import lfilter, butter, lfilter_zi, spectrogram
-from scipy.ndimage.filters import uniform_filter1d
+from scipy.ndimage import uniform_filter1d
 from scipy.io import wavfile
 from jinja2 import Template
 from pathlib import Path

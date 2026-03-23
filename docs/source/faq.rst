@@ -49,6 +49,30 @@ In PowerShell:
 See :ref:`asio-setup` in the Installation chapter for more details,
 including the legacy manual DLL-replacement method.
 
+PyTorch fails with WinError 1114 / WinError 126 on Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you see ``OSError: [WinError 1114] A dynamic link library (DLL)
+initialization routine failed`` (referencing ``c10.dll`` or
+``fbgemm.dll``), you are likely missing the Intel OpenMP runtime.
+
+**Quickest fix** -- install the CPU-only PyTorch wheel (sufficient for
+most Moove use cases):
+
+.. code-block:: powershell
+
+   pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+**If you need CUDA support**, install the missing runtime and reboot:
+
+.. code-block:: powershell
+
+   pip install intel-openmp
+
+A system reboot after installing is sometimes required.  For more
+details, see `pytorch/pytorch#131662
+<https://github.com/pytorch/pytorch/issues/131662>`_.
+
 NumPy 2.x -- is it supported?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

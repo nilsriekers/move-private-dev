@@ -88,6 +88,29 @@ no extra system-level installation is needed.
    pip install moove
    moovegui
 
+**PyTorch DLL errors on Windows:**  Some Windows systems are missing the
+Intel OpenMP runtime (``libomp140.x86_64.dll``) that PyTorch's CUDA
+wheels depend on.  This causes ``WinError 1114`` or ``WinError 126``
+when importing ``torch``.  Two workarounds:
+
+- **If you do not need GPU acceleration** (works for most Moove use
+  cases), install the CPU-only PyTorch wheel:
+
+  .. code-block:: powershell
+
+     pip install torch --index-url https://download.pytorch.org/whl/cpu
+     pip install moove
+
+- **If you need CUDA**, install the missing OpenMP library and reboot:
+
+  .. code-block:: powershell
+
+     pip install intel-openmp
+
+  If that does not help, manually place ``libomp140.x86_64.dll`` into
+  ``C:\Windows\System32`` (see `pytorch/pytorch#131662
+  <https://github.com/pytorch/pytorch/issues/131662>`_).
+
 If you need **low-latency ASIO support**, see :ref:`asio-setup` below.
 
 macOS

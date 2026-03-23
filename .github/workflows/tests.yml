@@ -68,6 +68,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-xinerama0 libgl1 libglib2.0-0 libportaudio2 portaudio19-dev
 
+      - name: Install Windows torch (CPU-only)
+        if: runner.os == 'Windows'
+        run: uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+
       - name: Sync dependencies
         run: uv sync --group dev
 
