@@ -26,7 +26,7 @@ from PyQt6.QtWidgets import (
     QComboBox, QPushButton, QCheckBox, QRadioButton, QButtonGroup,
     QMessageBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtCore import Qt, QRect, QTimer
 from PyQt6.QtGui import QIcon, QPixmap, QPalette
 
 from moove.qt_helpers import QRangeSliderV, RadioAdapter, set_combo_items, invoke_in_main_thread, show_info
@@ -82,6 +82,20 @@ package_example_data_WN = os.path.join(os.path.dirname(__file__), "example_data"
 target_WN_dir = os.path.join(_global_dir, "playbacks", "white_noise")
 if not os.path.exists(target_WN_dir):
     shutil.copytree(package_example_data_WN, target_WN_dir)
+
+
+def _resolve_icon_path():
+    """Return preferred icon path (ICO first, then PNG fallback)."""
+    pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.normpath(os.path.join(pkg_dir, "..", "assets", "logo_128_white_bg_scaled.ico")),
+        os.path.join(pkg_dir, "templates", "logo_128_white_bg_small.png"),
+        os.path.join(pkg_dir, "templates", "logo.png"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
 
 
 class MooveMainWindow(QMainWindow):
@@ -162,11 +176,8 @@ class MooveMainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _set_icon(self):
         try:
-            pkg_dir = os.path.dirname(os.path.abspath(__file__))
-            icon_path = os.path.join(pkg_dir, "templates", "logo_128_white_bg_small.png")
-            if not os.path.exists(icon_path):
-                icon_path = os.path.join(pkg_dir, "templates", "logo.png")
-            if os.path.exists(icon_path):
+            icon_path = _resolve_icon_path()
+            if icon_path:
                 icon = QIcon(icon_path)
                 self.setWindowIcon(icon)
                 QApplication.instance().setWindowIcon(icon)
@@ -174,6 +185,33 @@ class MooveMainWindow(QMainWindow):
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('moove.gui')
         except Exception as e:
             logger.warning(f"Could not set window icon: {e}")
+
+    def _apply_native_windows_icon(self):
+        """Apply taskbar icon via WinAPI as fallback when Qt icon is ignored."""
+        if sys.platform != "win32":
+            return
+
+        icon_path = _resolve_icon_path()
+        if not icon_path:
+            return
+
+        try:
+            hwnd = int(self.winId())
+            user32 = ctypes.windll.user32
+
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x0010
+            LR_DEFAULTSIZE = 0x0040
+            WM_SETICON = 0x0080
+            ICON_SMALL = 0
+            ICON_BIG = 1
+
+            hicon = user32.LoadImageW(None, icon_path, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE)
+            if hicon:
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon)
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon)
+        except Exception as e:
+            logger.warning(f"Could not apply native Windows icon: {e}")
 
     # ------------------------------------------------------------------
     # Top bar (comboboxes + checkboxes)
@@ -598,15 +636,17 @@ class MooveMainWindow(QMainWindow):
 
 
 def main():
-    app = QApplication(sys.argv)
+    if sys.platform == "win32":
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("moove.gui")
+        except Exception as e:
+            logger.warning(f"Could not set Windows AppUserModelID early: {e}")
 
-    pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    icon_path = None
-    for name in ("logo_128_white_bg_small.png", "logo.png"):
-        _p = os.path.join(pkg_dir, "templates", name)
-        if os.path.exists(_p):
-            icon_path = _p
-            break
+    app = QApplication(sys.argv)
+    app.setApplicationName("MooveGUI")
+    app.setOrganizationName("Moove")
+
+    icon_path = _resolve_icon_path()
 
     if icon_path:
         app.setWindowIcon(QIcon(icon_path))
@@ -625,6 +665,7 @@ def main():
     if not window.restore_last_window_geometry():
         window.resize(1200, 600)
     window.show()
+    QTimer.singleShot(0, window._apply_native_windows_icon)
     sys.exit(app.exec())
 
 
