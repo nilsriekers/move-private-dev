@@ -3,11 +3,12 @@ import os
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QComboBox, QPushButton, QCheckBox, QRadioButton, QButtonGroup,
-    QProgressBar, QWidget, QSizePolicy,
+    QProgressBar, QWidget, QSizePolicy, QMessageBox,
 )
 from PyQt6.QtCore import Qt
 
 from moove.app_state import Var
+from moove.qt_helpers import show_info
 
 
 def _btn(text, callback=None):
@@ -294,6 +295,27 @@ def open_training_window(parent, app_state):
     dlg.resize(700, 560)
     _set_dlg_icon(dlg)
     app_state.training_window = dlg
+    dlg._training_running = False
+    dlg._training_cancel_requested = False
+
+    def _training_close_event(event):
+        if getattr(dlg, '_training_running', False):
+            reply = QMessageBox.question(
+                dlg,
+                "Training is still running",
+                "A training job is still running. Abort training and close this window?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                dlg._training_cancel_requested = True
+                event.accept()
+                return
+            event.ignore()
+            return
+        event.accept()
+
+    dlg.closeEvent = _training_close_event
 
     root = QVBoxLayout(dlg)
     root.setContentsMargins(8, 8, 8, 8)
@@ -397,6 +419,9 @@ def open_training_window(parent, app_state):
         row += 1
 
     def _train_seg():
+        if getattr(dlg, '_training_running', False):
+            show_info(dlg, "Info", "A training job is already running.")
+            return
         app_state.train_segmentation_params['downsampling'].set(seg_down.isChecked())
         for k, e in seg_t_entries.items():
             app_state.train_segmentation_params[k].set(e.text())
@@ -494,6 +519,9 @@ def open_training_window(parent, app_state):
         row += 1
 
     def _train_cls():
+        if getattr(dlg, '_training_running', False):
+            show_info(dlg, "Info", "A training job is already running.")
+            return
         app_state.train_classification_params['downsampling'].set(cls_down.isChecked())
         for k, e in cls_t_entries.items():
             app_state.train_classification_params[k].set(e.text())

@@ -58,6 +58,21 @@ def _hide_status(window):
         QApplication.processEvents()
 
 
+def _set_training_running(app_state, running):
+    """Store training state on the training dialog instance."""
+    win = getattr(app_state, 'training_window', None)
+    if win is not None:
+        win._training_running = bool(running)
+        if running:
+            win._training_cancel_requested = False
+
+
+def _training_cancel_requested(app_state):
+    """Return True if user requested to cancel via dialog close."""
+    win = getattr(app_state, 'training_window', None)
+    return bool(win is not None and getattr(win, '_training_cancel_requested', False))
+
+
 def _ask_user_for_small_dataset(parent, n_files):
     """Show a blocking dialog asking if user wants to continue with few files."""
     dlg = QDialog(parent)
@@ -163,6 +178,8 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
             return
         _show_status(app_state.training_window, "Training in Progress...")
 
+    _set_training_running(app_state, True)
+
     train_data = train_data[:, 1:]
     val_data = val_data[:, 1:]
     test_data = test_data[:, 1:]
@@ -244,9 +261,21 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
     prefix = f"{training_dataset_name.split('.')[0]}"
 
     for epoch in range(epochs):
+        QApplication.processEvents()
+        if _training_cancel_requested(app_state):
+            _set_training_running(app_state, False)
+            _hide_status(app_state.training_window)
+            show_info(parent, "Info", "Training aborted.")
+            return
+
         model.train()
         train_loss, train_accuracy = 0.0, 0.0
         for inputs, labels in train_loader:
+            if _training_cancel_requested(app_state):
+                _set_training_running(app_state, False)
+                _hide_status(app_state.training_window)
+                show_info(parent, "Info", "Training aborted.")
+                return
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -265,6 +294,11 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
         val_loss, val_accuracy = 0.0, 0.0
         with torch.no_grad():
             for inputs, labels in val_loader:
+                if _training_cancel_requested(app_state):
+                    _set_training_running(app_state, False)
+                    _hide_status(app_state.training_window)
+                    show_info(parent, "Info", "Training aborted.")
+                    return
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
@@ -305,9 +339,20 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
     metadata = checkpoint['metadata']
     model.to(device)
 
+    if _training_cancel_requested(app_state):
+        _set_training_running(app_state, False)
+        _hide_status(app_state.training_window)
+        show_info(parent, "Info", "Training aborted.")
+        return
+
     test_loss, test_accuracy = 0.0, 0.0
     with torch.no_grad():
         for inputs, labels in test_loader:
+            if _training_cancel_requested(app_state):
+                _set_training_running(app_state, False)
+                _hide_status(app_state.training_window)
+                show_info(parent, "Info", "Training aborted.")
+                return
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, labels)
@@ -317,6 +362,7 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
     test_loss /= len(test_loader)
     test_accuracy /= len(test_loader)
 
+    _set_training_running(app_state, False)
     _hide_status(app_state.training_window)
     app_state.training_window.close()
     show_info(parent, "Info",
@@ -419,6 +465,8 @@ def start_classification_training(parent, app_state, dataset_name, bird):
             return
         _show_status(app_state.training_window, "Training in Progress...")
 
+    _set_training_running(app_state, True)
+
     train_data, train_labels = shuffle(train_data, train_labels, random_state=42)
     val_data, val_labels = shuffle(val_data, val_labels, random_state=42)
     test_data, test_labels = shuffle(test_data, test_labels, random_state=42)
@@ -473,9 +521,21 @@ def start_classification_training(parent, app_state, dataset_name, bird):
         return correct / total
 
     for epoch in range(epochs):
+        QApplication.processEvents()
+        if _training_cancel_requested(app_state):
+            _set_training_running(app_state, False)
+            _hide_status(app_state.training_window)
+            show_info(parent, "Info", "Training aborted.")
+            return
+
         model.train()
         running_loss = 0.0
         for inp, lab in train_loader:
+            if _training_cancel_requested(app_state):
+                _set_training_running(app_state, False)
+                _hide_status(app_state.training_window)
+                show_info(parent, "Info", "Training aborted.")
+                return
             augmented = [torch.from_numpy(augment_spectrogram(t.cpu().numpy())).float() for t in inp]
             augmented = torch.stack(augmented).to(device)
             lab = lab.to(device)
@@ -491,6 +551,11 @@ def start_classification_training(parent, app_state, dataset_name, bird):
         model.eval()
         with torch.no_grad():
             for inp, lab in val_loader:
+                if _training_cancel_requested(app_state):
+                    _set_training_running(app_state, False)
+                    _hide_status(app_state.training_window)
+                    show_info(parent, "Info", "Training aborted.")
+                    return
                 inp, lab = inp.to(device), lab.to(device)
                 out = model(inp)
                 val_loss += criterion(out, lab).item()
@@ -517,7 +582,19 @@ def start_classification_training(parent, app_state, dataset_name, bird):
     model = checkpoint['model']
     model.to(device)
 
+    if _training_cancel_requested(app_state):
+        _set_training_running(app_state, False)
+        _hide_status(app_state.training_window)
+        show_info(parent, "Info", "Training aborted.")
+        return
+
     test_accuracy = calc_accuracy(test_loader, model)
+
+    if _training_cancel_requested(app_state):
+        _set_training_running(app_state, False)
+        _hide_status(app_state.training_window)
+        show_info(parent, "Info", "Training aborted.")
+        return
 
     predictions, targets = get_predictions_and_targets(model, test_loader, device)
     cm = confusion_matrix(targets, predictions)
@@ -533,6 +610,7 @@ def start_classification_training(parent, app_state, dataset_name, bird):
     plt.savefig(os.path.join(app_state.config['global_dir'], 'trained_models', f'{prefix}_confusion_matrix.svg'))
     plt.close()
 
+    _set_training_running(app_state, False)
     _hide_status(app_state.training_window)
     app_state.training_window.close()
     show_info(parent, "Info",
