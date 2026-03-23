@@ -21,6 +21,21 @@ from moove.qt_helpers import invoke_in_main_thread, show_info, show_confirm_acti
 warnings.filterwarnings('ignore')
 
 
+def _set_cluster_running(app_state, running):
+    """Store running state for the cluster dialog."""
+    win = getattr(app_state, 'cluster_window', None)
+    if win is not None:
+        win._task_running = bool(running)
+        if running:
+            win._task_cancel_requested = False
+
+
+def _cluster_cancel_requested(app_state):
+    """Return True if user requested cancellation via dialog close."""
+    win = getattr(app_state, 'cluster_window', None)
+    return bool(win is not None and getattr(win, '_task_cancel_requested', False))
+
+
 def start_create_cluster_dataset_thread(app_state, dataset_name, use_selected_files, selection, batch_file, bird,
                                         experiment, day, parent):
     """Start a thread to create a cluster dataset based on selected files and criteria."""
@@ -45,16 +60,22 @@ def start_create_cluster_dataset_thread(app_state, dataset_name, use_selected_fi
         show_info(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
     else:
         win = app_state.cluster_window
+        if getattr(win, '_task_running', False):
+            show_info(win, "Info", "A cluster job is already running.")
+            return
+
         progressbar = win.progressbar
         progressbar.setMaximum(len(files))
         progressbar.setValue(0)
         progressbar.show()
+        _set_cluster_running(app_state, True)
 
         def thread_wrapper():
             current_thread = threading.current_thread()
             try:
                 create_cluster_dataset(app_state, dataset_name, progressbar, len(files), files, parent)
             finally:
+                _set_cluster_running(app_state, False)
                 app_state.remove_thread(current_thread)
 
         thread = threading.Thread(target=thread_wrapper, name="CreateClusterDatasetThread")
@@ -69,6 +90,7 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
+    cancelled = False
 
     if dataset_name:
         going_prod_df = pd.DataFrame(columns=['file', 'onset_no', 'cluster_flattend_spectrogram', 'label'])
@@ -110,6 +132,9 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
     invoke_in_main_thread(_hide_show_progress)
 
     for i in range(max_value):
+        if _cluster_cancel_requested(app_state):
+            cancelled = True
+            break
         invoke_in_main_thread(progressbar.setValue, i)
         file_i = all_files[i]
         file_path = {"file_name": os.path.basename(file_i), "file_path": os.path.join(os.getcwd(), file_i)}
@@ -151,14 +176,19 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
 
                 going_prod_df.loc[entry_no] = [file_i, syllable_no, Sxx_cluster.flatten(), "x"]
 
+    app_state.data_dir = original_data_dir
+    app_state.song_files = original_song_files
+    app_state.current_file_index = original_current_file_index
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(parent, "Info", "Cluster dataset creation aborted."))
+        return
+
     if dataset_name:
         file_path = os.path.join(app_state.config['global_dir'], 'cluster_data', f'{dataset_name}_clus.pkl')
         going_prod_df.to_pickle(file_path)
         app_state.update_cluster_datasets_combobox()
-
-    app_state.data_dir = original_data_dir
-    app_state.song_files = original_song_files
-    app_state.current_file_index = original_current_file_index
 
     invoke_in_main_thread(progressbar.setValue, max_value)
     invoke_in_main_thread(progressbar.hide)
@@ -173,16 +203,22 @@ def start_clustering_thread(parent, app_state, dataset_name_entry):
         show_info(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
         return
     else:
+        if getattr(app_state.cluster_window, '_task_running', False):
+            show_info(app_state.cluster_window, "Info", "A cluster job is already running.")
+            return
         if not show_confirm_action_window(parent, "Info", "Clustering started. "
                                                           "This may take a while, please wait!"):
             # stop execution if closed with [Close]
             return
+
+    _set_cluster_running(app_state, True)
 
     def thread_wrapper():
         current_thread = threading.current_thread()
         try:
             run_clustering(parent, app_state, dataset_name)
         finally:
+            _set_cluster_running(app_state, False)
             app_state.remove_thread(current_thread)
 
     thread = threading.Thread(target=thread_wrapper, name="ClusteringThread")
@@ -202,11 +238,21 @@ def run_clustering(parent, app_state, dataset_name):
             app_state.cluster_window.status_label.setText("Running...")
             app_state.cluster_window.status_label.show()
 
+    def _hide_running():
+        if hasattr(app_state.cluster_window, 'status_label'):
+            app_state.cluster_window.status_label.hide()
+
     invoke_in_main_thread(_show_running)
+
+    if _cluster_cancel_requested(app_state):
+        invoke_in_main_thread(_hide_running)
+        invoke_in_main_thread(lambda: show_info(parent, "Info", "Clustering aborted."))
+        return
 
     dataset_path = os.path.join(app_state.config['global_dir'], 'cluster_data', dataset_name_pkl)
     if not os.path.exists(dataset_path):
         app_state.logger.error("Dataset %s not found in cluster_data folder.", dataset_name_pkl)
+        invoke_in_main_thread(_hide_running)
         return
 
     df = pd.read_pickle(dataset_path)
@@ -214,6 +260,11 @@ def run_clustering(parent, app_state, dataset_name):
 
     umap_model = UMAP(n_neighbors=n_neighbors, min_dist=min_dist, n_components=2, metric='euclidean', random_state=42)
     low_dimensional_data = umap_model.fit_transform(spectrogram_feature_array)
+
+    if _cluster_cancel_requested(app_state):
+        invoke_in_main_thread(_hide_running)
+        invoke_in_main_thread(lambda: show_info(parent, "Info", "Clustering aborted."))
+        return
 
     kmeans = KMeans(n_clusters=n_syllables, random_state=42)
     labels = kmeans.fit_predict(low_dimensional_data)
@@ -229,10 +280,6 @@ def run_clustering(parent, app_state, dataset_name):
     df.to_pickle(output_path)
 
     invoke_in_main_thread(plot_clusters, parent, app_state, low_dimensional_data, alphabet_labels, output_path)
-
-    def _hide_running():
-        if hasattr(app_state.cluster_window, 'status_label'):
-            app_state.cluster_window.status_label.hide()
 
     invoke_in_main_thread(_hide_running)
 
@@ -294,6 +341,7 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
+    _set_cluster_running(app_state, True)
 
     dataset_path = os.path.join(app_state.config['global_dir'], 'cluster_data', f'{dataset_name}.pkl')
     df = pd.read_pickle(dataset_path)
@@ -304,6 +352,7 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     # counters for summary info window
     processed_count = 0
     failed_count = 0
+    cancelled = False
 
     win = app_state.cluster_window
     progressbar = win.progressbar
@@ -312,6 +361,10 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     progressbar.show()
 
     for i, file in enumerate(files):
+        QApplication.processEvents()
+        if _cluster_cancel_requested(app_state):
+            cancelled = True
+            break
         try:
             invoke_in_main_thread(progressbar.setValue, i)
             if 'clustered_label' not in df.columns:
@@ -337,6 +390,13 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        _set_cluster_running(app_state, False)
+        invoke_in_main_thread(lambda: show_info(parent, "Info", "Label replacement aborted."))
+        return
+
     invoke_in_main_thread(progressbar.setValue, len(files))
 
     invoke_in_main_thread(progressbar.hide)
@@ -348,3 +408,4 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
                         f"Total: {len(files)}\n"
                         f"Processed: {processed_count}\n"
                         f"Failed: {failed_count}\n"))
+    _set_cluster_running(app_state, False)

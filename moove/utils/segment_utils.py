@@ -16,6 +16,36 @@ from moove.utils.movefuncs_utils import (
 matplotlib.use('Agg')
 
 
+def _set_resegment_running(app_state, running):
+    """Store running state for the resegment dialog."""
+    win = getattr(app_state, 'resegment_window', None)
+    if win is not None:
+        win._task_running = bool(running)
+        if running:
+            win._task_cancel_requested = False
+
+
+def _resegment_cancel_requested(app_state):
+    """Return True if user requested cancellation via dialog close."""
+    win = getattr(app_state, 'resegment_window', None)
+    return bool(win is not None and getattr(win, '_task_cancel_requested', False))
+
+
+def _set_training_task_running(app_state, running):
+    """Store running state for training dataset creation dialog tasks."""
+    win = getattr(app_state, 'training_window', None)
+    if win is not None:
+        win._task_running = bool(running)
+        if running:
+            win._task_cancel_requested = False
+
+
+def _training_task_cancel_requested(app_state):
+    """Return True if user requested cancellation for training dialog task."""
+    win = getattr(app_state, 'training_window', None)
+    return bool(win is not None and getattr(win, '_task_cancel_requested', False))
+
+
 def load_segmentation_checkmarks(all_files):
     """Return only files that are NOT yet marked as segmented.
 
@@ -61,16 +91,22 @@ def start_segment_evfuncs(app_state, selection, batch_file, bird, experiment, da
         files = [get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)["file_path"]]
 
     win = app_state.resegment_window
+    if getattr(win, '_task_running', False):
+        show_info(win, "Info", "A resegmentation job is already running.")
+        return
+
     progressbar = win.progressbar
     progressbar.setMaximum(len(files))
     progressbar.setValue(0)
     progressbar.show()
+    _set_resegment_running(app_state, True)
 
     def thread_wrapper():
         current_thread = threading.current_thread()
         try:
             segment_evfuncs(app_state, progressbar, files)
         finally:
+            _set_resegment_running(app_state, False)
             app_state.remove_thread(current_thread)
 
     thread = threading.Thread(target=thread_wrapper, name="SegmentEvfuncsThread")
@@ -86,8 +122,12 @@ def segment_evfuncs(app_state, progressbar, files):
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
     failed_count = 0
+    cancelled = False
 
     for i, file_i in enumerate(files):
+        if _resegment_cancel_requested(app_state):
+            cancelled = True
+            break
         try:
             invoke_in_main_thread(progressbar.setValue, i)
 
@@ -127,6 +167,12 @@ def segment_evfuncs(app_state, progressbar, files):
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            app_state.resegment_window, "Info", "Resegmentation aborted."))
+        return
 
     invoke_in_main_thread(progressbar.setValue, len(files))
     invoke_in_main_thread(plot_data, app_state)
@@ -209,6 +255,7 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     overlap_chunks = app_state.train_segmentation_params['overlap_chunks'].get()
 
     all_features = []
+    cancelled = False
 
     def generate_concatenated_chunks_with_labels(arr, hist_size, overlap_chunks=False):
         concatenated_chunks = []
@@ -238,9 +285,19 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
 
     num_segs = 0
     for fp in all_files:
+        if _training_task_cancel_requested(app_state):
+            cancelled = True
+            break
         info = get_onset_offset_info(fp)
         if len(info["onsets"]) > 0 and len(info["offsets"]) > 0:
             num_segs += min(len(info["onsets"]), len(info["offsets"]))
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: (
+            app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label') else None,
+            show_info(app_state.training_window, "Info", "Segmentation dataset creation aborted.")))
+        return
 
     if num_segs == 0:
         invoke_in_main_thread(lambda: (
@@ -255,6 +312,9 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     invoke_in_main_thread(_hide_show_progress)
 
     for file_index, file_path in enumerate(all_files):
+        if _training_task_cancel_requested(app_state):
+            cancelled = True
+            break
         try:
             display_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path}, app_state.config)
         except Exception as e:
@@ -287,6 +347,12 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
         concatenated = generate_concatenated_chunks_with_labels(np.array(file_features), hist_size, overlap_chunks)
         if concatenated.size > 0:
             all_features.extend(concatenated)
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            app_state.training_window, "Info", "Segmentation dataset creation aborted."))
+        return
 
     if len(all_features) == 0:
         invoke_in_main_thread(progressbar.hide)
@@ -325,11 +391,15 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
     failed_count = 0
+    cancelled = False
 
     hist_size = int(metadata['hist_size'])
     chunk_size = int(metadata['chunk_size'])
 
     for i, file_path in enumerate(all_files):
+        if _resegment_cancel_requested(app_state):
+            cancelled = True
+            break
         try:
             invoke_in_main_thread(progressbar.setValue, i)
             display_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path}, app_state.config)
@@ -365,6 +435,12 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            app_state.resegment_window, "Info", "Resegmentation aborted."))
+        return
 
     invoke_in_main_thread(progressbar.hide)
     invoke_in_main_thread(plot_data, app_state)
@@ -417,16 +493,22 @@ def start_segment_files_thread(app_state, segmentation_model_name, selection, ch
         files = load_segmentation_checkmarks(files)
 
     win = app_state.resegment_window
+    if getattr(win, '_task_running', False):
+        show_info(win, "Info", "A resegmentation job is already running.")
+        return
+
     progressbar = win.progressbar
     progressbar.setMaximum(len(files))
     progressbar.setValue(0)
     progressbar.show()
+    _set_resegment_running(app_state, True)
 
     def thread_wrapper():
         current_thread = threading.current_thread()
         try:
             segment_files_ml(app_state, progressbar, files, model, metadata, device)
         finally:
+            _set_resegment_running(app_state, False)
             app_state.remove_thread(current_thread)
 
     thread = threading.Thread(target=thread_wrapper, name="SegmentMLThread")
@@ -455,16 +537,22 @@ def start_create_segmentation_training_dataset(app_state, dataset_name, use_sele
         return
 
     win = app_state.training_window
+    if getattr(win, '_training_running', False) or getattr(win, '_task_running', False):
+        show_info(parent, "Info", "A training operation is already running.")
+        return
+
     progressbar = win.progressbar
     progressbar.setMaximum(len(files))
     progressbar.setValue(0)
     progressbar.show()
+    _set_training_task_running(app_state, True)
 
     def thread_wrapper():
         current_thread = threading.current_thread()
         try:
             create_segmentation_training_dataset(app_state, progressbar, dataset_name, files, parent)
         finally:
+            _set_training_task_running(app_state, False)
             app_state.remove_thread(current_thread)
 
     thread = threading.Thread(target=thread_wrapper, name="CreateSegDatasetThread")

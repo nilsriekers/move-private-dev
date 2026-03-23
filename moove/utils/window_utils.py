@@ -55,6 +55,27 @@ def open_resegment_window(parent, app_state):
     dlg.resize(700, 450)
     _set_dlg_icon(dlg)
     app_state.resegment_window = dlg
+    dlg._task_running = False
+    dlg._task_cancel_requested = False
+
+    def _resegment_close_event(event):
+        if getattr(dlg, '_task_running', False):
+            reply = QMessageBox.question(
+                dlg,
+                "Resegmentation is still running",
+                "A resegmentation job is still running. Abort it and close this window?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                dlg._task_cancel_requested = True
+                event.accept()
+                return
+            event.ignore()
+            return
+        event.accept()
+
+    dlg.closeEvent = _resegment_close_event
 
     root = QVBoxLayout(dlg)
     root.setContentsMargins(8, 8, 8, 8)
@@ -107,6 +128,9 @@ def open_resegment_window(parent, app_state):
         row += 1
 
     def _do_ev_segment():
+        if getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A resegmentation job is already running.")
+            return
         for k, e in ev_entries.items():
             app_state.evfuncs_params[k].set(e.text())
         b, e, d = _get_bird_exp_day(app_state)
@@ -181,6 +205,9 @@ def open_resegment_window(parent, app_state):
     dlg.progressbar.hide()
 
     def _do_ml_segment():
+        if getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A resegmentation job is already running.")
+            return
         for k, e in ml_entries.items():
             app_state.mlseg_params[k].set(e.text())
         sel_model = model_combo.currentText()
@@ -211,6 +238,27 @@ def open_relabel_window(parent, app_state):
     dlg.setMinimumWidth(400)
     _set_dlg_icon(dlg)
     app_state.relabel_window = dlg
+    dlg._task_running = False
+    dlg._task_cancel_requested = False
+
+    def _relabel_close_event(event):
+        if getattr(dlg, '_task_running', False):
+            reply = QMessageBox.question(
+                dlg,
+                "Relabeling is still running",
+                "A relabeling job is still running. Abort it and close this window?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                dlg._task_cancel_requested = True
+                event.accept()
+                return
+            event.ignore()
+            return
+        event.accept()
+
+    dlg.closeEvent = _relabel_close_event
 
     outer = QVBoxLayout(dlg)
     outer.setContentsMargins(8, 8, 8, 8)
@@ -262,6 +310,9 @@ def open_relabel_window(parent, app_state):
     dlg.progressbar.hide()
 
     def _do_relabel():
+        if getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A relabeling job is already running.")
+            return
         sel_model = model_combo.currentText()
         if sel_model == "Select Trained Classification Model":
             sel_model = ""
@@ -297,18 +348,21 @@ def open_training_window(parent, app_state):
     app_state.training_window = dlg
     dlg._training_running = False
     dlg._training_cancel_requested = False
+    dlg._task_running = False
+    dlg._task_cancel_requested = False
 
     def _training_close_event(event):
-        if getattr(dlg, '_training_running', False):
+        if getattr(dlg, '_training_running', False) or getattr(dlg, '_task_running', False):
             reply = QMessageBox.question(
                 dlg,
-                "Training is still running",
-                "A training job is still running. Abort training and close this window?",
+                "An operation is still running",
+                "A training operation is still running. Abort it and close this window?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if reply == QMessageBox.StandardButton.Yes:
                 dlg._training_cancel_requested = True
+                dlg._task_cancel_requested = True
                 event.accept()
                 return
             event.ignore()
@@ -382,6 +436,9 @@ def open_training_window(parent, app_state):
     row += 1
 
     def _create_seg_ds():
+        if getattr(dlg, '_training_running', False) or getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A training operation is already running.")
+            return
         app_state.train_segmentation_params['chunk_size'].set(seg_chunk.text())
         app_state.train_segmentation_params['hist_size'].set(seg_hist.text())
         app_state.train_segmentation_params['overlap_chunks'].set(seg_overlap.isChecked())
@@ -419,8 +476,8 @@ def open_training_window(parent, app_state):
         row += 1
 
     def _train_seg():
-        if getattr(dlg, '_training_running', False):
-            show_info(dlg, "Info", "A training job is already running.")
+        if getattr(dlg, '_training_running', False) or getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A training operation is already running.")
             return
         app_state.train_segmentation_params['downsampling'].set(seg_down.isChecked())
         for k, e in seg_t_entries.items():
@@ -483,6 +540,9 @@ def open_training_window(parent, app_state):
         row += 1
 
     def _create_cls_ds():
+        if getattr(dlg, '_training_running', False) or getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A training operation is already running.")
+            return
         for k, e in spec_entries.items():
             app_state.spec_params[k].set(e.text())
         b, e, d = _get_bird_exp_day(app_state)
@@ -519,8 +579,8 @@ def open_training_window(parent, app_state):
         row += 1
 
     def _train_cls():
-        if getattr(dlg, '_training_running', False):
-            show_info(dlg, "Info", "A training job is already running.")
+        if getattr(dlg, '_training_running', False) or getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A training operation is already running.")
             return
         app_state.train_classification_params['downsampling'].set(cls_down.isChecked())
         for k, e in cls_t_entries.items():
@@ -559,6 +619,27 @@ def open_cluster_window(parent, app_state):
     dlg.resize(400, 580)
     _set_dlg_icon(dlg)
     app_state.cluster_window = dlg
+    dlg._task_running = False
+    dlg._task_cancel_requested = False
+
+    def _cluster_close_event(event):
+        if getattr(dlg, '_task_running', False):
+            reply = QMessageBox.question(
+                dlg,
+                "Cluster operation is still running",
+                "A cluster operation is still running. Abort it and close this window?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                dlg._task_cancel_requested = True
+                event.accept()
+                return
+            event.ignore()
+            return
+        event.accept()
+
+    dlg.closeEvent = _cluster_close_event
 
     outer = QVBoxLayout(dlg)
     outer.setContentsMargins(8, 8, 8, 8)
@@ -611,6 +692,9 @@ def open_cluster_window(parent, app_state):
         row += 1
 
     def _create_ds():
+        if getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A cluster job is already running.")
+            return
         for k, e in spec_entries.items():
             app_state.spec_params[k].set(e.text())
         b, e, d = _get_bird_exp_day(app_state)
@@ -641,6 +725,9 @@ def open_cluster_window(parent, app_state):
         row += 1
 
     def _cluster():
+        if getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A cluster job is already running.")
+            return
         for k, e in umap_entries.items():
             app_state.umap_k_means_params[k].set(e.text())
         start_clustering_thread(dlg, app_state, remove_pkl_suffix(clus_combo.currentText()))
@@ -658,8 +745,13 @@ def open_cluster_window(parent, app_state):
     grid.addWidget(btn_close_dash, row, 1)
     row += 1
 
-    btn_replace = _btn("Replace Labels",
-                       lambda: replace_labels_from_df(app_state, remove_pkl_suffix(clus_combo.currentText()), dlg))
+    def _replace_labels():
+        if getattr(dlg, '_task_running', False):
+            show_info(dlg, "Info", "A cluster job is already running.")
+            return
+        replace_labels_from_df(app_state, remove_pkl_suffix(clus_combo.currentText()), dlg)
+
+    btn_replace = _btn("Replace Labels", _replace_labels)
     grid.addWidget(btn_replace, row, 0, 1, 2)
     row += 1
 

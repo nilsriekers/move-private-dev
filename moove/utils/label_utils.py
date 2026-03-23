@@ -19,6 +19,36 @@ from moove.utils.movefuncs_utils import (
 )
 
 
+def _set_relabel_running(app_state, running):
+    """Store running state for the relabel dialog."""
+    win = getattr(app_state, 'relabel_window', None)
+    if win is not None:
+        win._task_running = bool(running)
+        if running:
+            win._task_cancel_requested = False
+
+
+def _relabel_cancel_requested(app_state):
+    """Return True if user requested cancellation via dialog close."""
+    win = getattr(app_state, 'relabel_window', None)
+    return bool(win is not None and getattr(win, '_task_cancel_requested', False))
+
+
+def _set_training_task_running(app_state, running):
+    """Store running state for training dataset creation dialog tasks."""
+    win = getattr(app_state, 'training_window', None)
+    if win is not None:
+        win._task_running = bool(running)
+        if running:
+            win._task_cancel_requested = False
+
+
+def _training_task_cancel_requested(app_state):
+    """Return True if user requested cancellation for training dialog task."""
+    win = getattr(app_state, 'training_window', None)
+    return bool(win is not None and getattr(win, '_task_cancel_requested', False))
+
+
 def _torch_major_minor():
     """Return torch major/minor as tuple, e.g. (2, 6)."""
     match = re.match(r"(\d+)\.(\d+)", torch.__version__)
@@ -86,6 +116,10 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
     from moove.utils import get_files_for_day, get_files_for_experiment, get_files_for_bird, filter_classified_files
 
     win = app_state.training_window
+    if getattr(win, '_training_running', False) or getattr(win, '_task_running', False):
+        show_info(parent, "Info", "A training operation is already running.")
+        return
+
     if hasattr(win, 'status_label'):
         win.status_label.setText("Looking for files...")
         win.status_label.show()
@@ -114,12 +148,14 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
         progressbar.setMaximum(len(files))
         progressbar.setValue(0)
         progressbar.show()
+        _set_training_task_running(app_state, True)
 
         def thread_wrapper():
             current_thread = threading.current_thread()
             try:
                 create_classification_training_dataset(app_state, progressbar, dataset_name, files, parent)
             finally:
+                _set_training_task_running(app_state, False)
                 app_state.remove_thread(current_thread)
 
         thread = threading.Thread(target=thread_wrapper, name="CreateClassDatasetThread")
@@ -146,6 +182,7 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
 
     going_prod_df = pd.DataFrame(columns=['file', 'onset_no', 'taf_unflattend_spectrogram', 'label'])
     entry_no = 0
+    cancelled = False
 
     invoke_in_main_thread(progressbar.hide)
 
@@ -165,11 +202,22 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
 
     num_onsets = 0
     for file_i in files:
+        if _training_task_cancel_requested(app_state):
+            cancelled = True
+            break
         working_dir = os.getcwd()
         file_path = os.path.join(working_dir, file_i)
         onsets = get_onsets(file_path)
         if len(onsets) > 0:
             num_onsets += len(onsets)
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: (
+            app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label')
+            else None,
+            show_info(parent, "Info", "Classification dataset creation aborted.")))
+        return
 
     if num_onsets == 0:
         invoke_in_main_thread(lambda: (
@@ -186,6 +234,9 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
     invoke_in_main_thread(_hide_show_progress)
 
     for i, file_i in enumerate(files):
+        if _training_task_cancel_requested(app_state):
+            cancelled = True
+            break
         invoke_in_main_thread(lambda: QApplication.processEvents())
         working_dir = os.getcwd()
         file_path = os.path.join(working_dir, file_i)
@@ -201,7 +252,25 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
 
         if len(onsets) > 0:
             invoke_in_main_thread(progressbar.setValue, i)
-            for syllable_no, onset in enumerate(onsets):
+            label_seq = labels if labels is not None else ""
+            n_onsets = len(onsets)
+            n_labels = len(label_seq)
+            usable = min(n_onsets, n_labels)
+
+            if usable == 0:
+                app_state.logger.warning(
+                    "Skipping file '%s' in class dataset creation: no usable onset/label pairs (onsets=%s, labels=%s).",
+                    file_i, n_onsets, n_labels
+                )
+                continue
+
+            if n_onsets != n_labels:
+                app_state.logger.warning(
+                    "File '%s' has mismatch between onsets and labels (onsets=%s, labels=%s); using first %s pair(s).",
+                    file_i, n_onsets, n_labels, usable
+                )
+
+            for syllable_no, onset in enumerate(onsets[:usable]):
                 entry_no += 1
                 onset_index = int(seconds_to_index(onset, sampling_rate))
                 cutted_raw_song = rawsong[onset_index:onset_index + input_array_size]
@@ -215,7 +284,13 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
                                              f"skipping this entry.")
                     continue
 
-                going_prod_df.loc[entry_no] = [file_i, syllable_no, Sxx_taf, labels[syllable_no]]
+                going_prod_df.loc[entry_no] = [file_i, syllable_no, Sxx_taf, label_seq[syllable_no]]
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            parent, "Info", "Classification dataset creation aborted."))
+        return
 
     metadata = {
         'input_length': input_length_str,
@@ -309,10 +384,15 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
         return
 
     win = app_state.relabel_window
+    if getattr(win, '_task_running', False):
+        show_info(win, "Info", "A relabeling job is already running.")
+        return
+
     progressbar = win.progressbar
     progressbar.setMaximum(len(files))
     progressbar.setValue(0)
     progressbar.show()
+    _set_relabel_running(app_state, True)
 
     def thread_wrapper():
         current_thread = threading.current_thread()
@@ -320,6 +400,7 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
             ml_classify_file(app_state, progressbar, len(files), files, model, metadata, device,
                              total_selected=total_selected, skipped_preclassified=skipped_preclassified)
         finally:
+            _set_relabel_running(app_state, False)
             app_state.remove_thread(current_thread)
 
     thread = threading.Thread(target=thread_wrapper, name="ClassifyFilesThread")
@@ -343,8 +424,12 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     processed_count = 0
     failed_count = 0
     skipped_no_segments = 0
+    cancelled = False
 
     for i, file_i in enumerate(all_files):
+        if _relabel_cancel_requested(app_state):
+            cancelled = True
+            break
         try:
             invoke_in_main_thread(progressbar.setValue, i)
             file_data = get_display_data({"file_name": os.path.basename(file_i), "file_path": file_i},
@@ -391,6 +476,12 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
     app_state.current_file_index = original_current_file_index
+
+    if cancelled:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            app_state.relabel_window, "Info", "Relabeling aborted."))
+        return
 
     invoke_in_main_thread(progressbar.setValue, len(all_files))
 
