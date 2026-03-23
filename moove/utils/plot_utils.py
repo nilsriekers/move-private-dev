@@ -5,7 +5,7 @@ import numpy as np
 import os
 import traceback
 from moove.utils.audio_utils import (decibel)
-from moove.utils.movefuncs_utils import (load_recfile)
+from moove.utils.movefuncs_utils import (load_recfile, ensure_recfile_exists_and_has_flags)
 
 plt.rcParams.update({
     'font.size': 14,
@@ -222,6 +222,7 @@ def plot_data(app_state):
 
     try:
         file_path = get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)
+        ensure_recfile_exists_and_has_flags(file_path["file_path"])
         app_state.display_dict = get_display_data(file_path, app_state.config)
         
         update_plots(app_state.display_dict, app_state, file_path)

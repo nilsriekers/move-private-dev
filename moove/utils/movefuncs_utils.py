@@ -137,6 +137,8 @@ def ensure_hand_segmented_and_classified_lines(recfile_path, content):
     with open(recfile_path, "w") as f:
         f.write(updated_content)
 
+    print(f"Added missing rec file entries: {recfile_path}")
+
     return updated_content
 
 
@@ -237,16 +239,16 @@ def create_recfile_for_existing_audio(
     hand_classified=0,
     overwrite=False,
 ):
-    """Create a .rec file for an existing .wav file.
+    """Create a .rec file for an existing audio file.
 
-    All timing and hardware parameters are derived from the wav file.
+    All timing and hardware parameters are derived from the audio file.
     The notmat file is optional; if supplied, its sampling rate is checked
-    against the wav to catch mismatches.
+    against the audio file to catch mismatches.
 
     Parameters
     ----------
     wav_path : str or Path
-        Path to the .wav file.
+        Path to the .wav or .cbin file.
     notmat_path : str or Path, optional
         Path to the matching .not.mat file.  Not required for rec-file
         creation, but when provided the sampling rates of both files are
@@ -272,9 +274,17 @@ def create_recfile_for_existing_audio(
     """
     wav_path = Path(wav_path)
     if not wav_path.exists():
-        raise FileNotFoundError(f"Wav file not found: {wav_path}")
+        raise FileNotFoundError(f"Audio file not found: {wav_path}")
 
-    sampling_rate, song_data = wav.read(str(wav_path))
+    suffix = wav_path.suffix.lower()
+    if suffix == ".wav":
+        sampling_rate, song_data = wav.read(str(wav_path))
+    elif suffix == ".cbin":
+        import evfuncs
+        song_data, sampling_rate = evfuncs.load_cbin(str(wav_path))
+    else:
+        raise ValueError(f"Unsupported audio format for rec creation: {wav_path.suffix}")
+
     chans = 1 if song_data.ndim == 1 else song_data.shape[1]
     total_samples = len(song_data)
     duration_s = total_samples / sampling_rate
@@ -324,7 +334,27 @@ def create_recfile_for_existing_audio(
         )
 
     save_recfile(str(rec_path), recfile_dict)
+    print(f"Created rec file: {rec_path}")
     return str(rec_path)
+
+
+def ensure_recfile_exists_and_has_flags(file_path):
+    """Ensure a file has a recfile and required hand flag lines.
+
+    Missing recfiles are created using create_recfile_for_existing_audio.
+    Existing recfiles are only supplemented in-place with missing
+    ``Hand Segmented`` / ``Hand Classified`` lines.
+    """
+    file_path = Path(file_path)
+    recfile_path = file_path.with_suffix(".rec")
+
+    if not recfile_path.exists():
+        create_recfile_for_existing_audio(file_path)
+
+    with open(recfile_path, "r") as f:
+        content = f.read()
+
+    return ensure_hand_segmented_and_classified_lines(str(recfile_path), content)
 
 
 def extract_raw_audio(full_audio_data, chunk_size):
