@@ -6,9 +6,8 @@ from PyQt6.QtWidgets import (
     QProgressBar, QWidget, QSizePolicy,
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
 
-from moove.app_state import Var, BoolVar
+from moove.app_state import Var
 
 
 def _btn(text, callback=None):
@@ -64,7 +63,8 @@ def open_resegment_window(parent, app_state):
 
     # --- Left: Evfuncs ---
     left = QGridLayout()
-    left_w = QWidget(); left_w.setLayout(left)
+    left_w = QWidget()
+    left_w.setLayout(left)
     left_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
     panels.addWidget(left_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
@@ -83,6 +83,7 @@ def open_resegment_window(parent, app_state):
 
         def _make_cb(v=val):
             return lambda: (ev_sel.set(v), app_state.update_batch_select_combobox_resegment_ev(v))
+
         rb.toggled.connect(lambda checked, cb=_make_cb(): cb() if checked else None)
         left.addWidget(rb, row, 0, 1, 2)
         row += 1
@@ -115,12 +116,14 @@ def open_resegment_window(parent, app_state):
 
     # --- Right: Segmentation Network ---
     right = QGridLayout()
-    right_w = QWidget(); right_w.setLayout(right)
+    right_w = QWidget()
+    right_w.setLayout(right)
     right_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
     panels.addWidget(right_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
-    right.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+    right.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2,
+                    Qt.AlignmentFlag.AlignCenter)
     row += 1
 
     sm_sel = Var("current_file")
@@ -134,6 +137,7 @@ def open_resegment_window(parent, app_state):
 
         def _make_cb(v=val):
             return lambda: (sm_sel.set(v), app_state.update_batch_select_combobox_resegment(v))
+
         rb.toggled.connect(lambda checked, cb=_make_cb(): cb() if checked else None)
         right.addWidget(rb, row, 0, 1, 2)
         row += 1
@@ -212,7 +216,8 @@ def open_relabel_window(parent, app_state):
     grid = QGridLayout()
     outer.addLayout(grid)
     row = 0
-    grid.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+    grid.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2,
+                   Qt.AlignmentFlag.AlignCenter)
     row += 1
 
     sel = Var("current_file")
@@ -226,6 +231,7 @@ def open_relabel_window(parent, app_state):
 
         def _make_cb(v=val):
             return lambda: (sel.set(v), app_state.update_batch_select_combobox_relabel(v))
+
         rb.toggled.connect(lambda checked, cb=_make_cb(): cb() if checked else None)
         grid.addWidget(rb, row, 0, 1, 2)
         row += 1
@@ -281,8 +287,7 @@ def open_training_window(parent, app_state):
     from moove.utils import (
         start_create_segmentation_training_dataset, start_segmentation_training,
         start_create_classification_training_dataset, start_classification_training,
-        find_batch_files,
-    )
+        )
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Training")
@@ -298,47 +303,61 @@ def open_training_window(parent, app_state):
 
     # ---- Left: Segmentation ----
     left = QGridLayout()
-    left_w = QWidget(); left_w.setLayout(left)
+    left_w = QWidget()
+    left_w.setLayout(left)
     left_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
     panels.addWidget(left_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
-    left.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+    left.addWidget(QLabel("<b style='font-size:16px'>Segmentation Network</b>"), row, 0, 1, 2,
+                   Qt.AlignmentFlag.AlignCenter)
     row += 1
 
     use_seg_only = QCheckBox("Use segmented files only")
-    left.addWidget(use_seg_only, row, 0, 1, 2); row += 1
+    left.addWidget(use_seg_only, row, 0, 1, 2)
+    row += 1
 
     seg_sel = Var("current_day")
     seg_grp = QButtonGroup(dlg)
     for txt, val in [("Current Day", "current_day"), ("Current Experiment", "current_experiment"),
                      ("Current Bird", "current_bird")]:
-        rb = QRadioButton(txt); seg_grp.addButton(rb)
-        if val == "current_day": rb.setChecked(True)
-        def _mc(v=val): return lambda: (seg_sel.set(v), app_state.update_batch_select_combobox_segment(v))
-        rb.toggled.connect(lambda chk, cb=_mc(): cb() if chk else None)
-        left.addWidget(rb, row, 0, 1, 2); row += 1
+        rb = QRadioButton(txt)
+        seg_grp.addButton(rb)
+        if val == "current_day":
+            rb.setChecked(True)
 
-    seg_batch = QComboBox(); seg_batch.addItem("Select Batch File")
+        def _mc(v=val):
+            return lambda: (seg_sel.set(v), app_state.update_batch_select_combobox_segment(v))
+
+        rb.toggled.connect(lambda chk, cb=_mc(): cb() if chk else None)
+        left.addWidget(rb, row, 0, 1, 2)
+        row += 1
+
+    seg_batch = QComboBox()
+    seg_batch.addItem("Select Batch File")
     dlg.training_batch_combobox_segmentation = seg_batch
     app_state.update_batch_select_combobox_segment(seg_sel.get())
     left.addWidget(seg_batch, 3, 1)
 
     left.addWidget(QLabel("Training Dataset Name:"), row, 0)
     seg_ds_name = QLineEdit("edit_seg_dataset_name")
-    left.addWidget(seg_ds_name, row, 1); row += 1
+    left.addWidget(seg_ds_name, row, 1)
+    row += 1
 
     left.addWidget(QLabel("Chunk Size:"), row, 0)
     seg_chunk = QLineEdit(app_state.train_segmentation_params['chunk_size'].get())
-    left.addWidget(seg_chunk, row, 1); row += 1
+    left.addWidget(seg_chunk, row, 1)
+    row += 1
 
     left.addWidget(QLabel("Hist Size:"), row, 0)
     seg_hist = QLineEdit(app_state.train_segmentation_params['hist_size'].get())
-    left.addWidget(seg_hist, row, 1); row += 1
+    left.addWidget(seg_hist, row, 1)
+    row += 1
 
     seg_overlap = QCheckBox("Overlap chunks")
     seg_overlap.setChecked(app_state.train_segmentation_params['overlap_chunks'].get())
-    left.addWidget(seg_overlap, row, 0, 1, 2); row += 1
+    left.addWidget(seg_overlap, row, 0, 1, 2)
+    row += 1
 
     def _create_seg_ds():
         app_state.train_segmentation_params['chunk_size'].set(seg_chunk.text())
@@ -350,18 +369,23 @@ def open_training_window(parent, app_state):
             seg_sel.get(), seg_batch.currentText(), b, e, d, dlg)
 
     btn_create_seg = _btn("Create Training Dataset", _create_seg_ds)
-    left.addWidget(btn_create_seg, row, 0, 1, 2); row += 1
+    left.addWidget(btn_create_seg, row, 0, 1, 2)
+    row += 1
 
-    left.addWidget(QLabel(""), row, 0); row += 1
+    left.addWidget(QLabel(""), row, 0)
+    row += 1
 
-    seg_ds_combo = QComboBox(); seg_ds_combo.addItem("Select Training Dataset")
+    seg_ds_combo = QComboBox()
+    seg_ds_combo.addItem("Select Training Dataset")
     dlg.training_dataset_combobox_segmentation = seg_ds_combo
     app_state.update_segmentation_datasets_combobox()
-    left.addWidget(seg_ds_combo, row, 0, 1, 2); row += 1
+    left.addWidget(seg_ds_combo, row, 0, 1, 2)
+    row += 1
 
     seg_down = QCheckBox("Downsampling")
     seg_down.setChecked(app_state.train_segmentation_params['downsampling'].get())
-    left.addWidget(seg_down, row, 0, 1, 2); row += 1
+    left.addWidget(seg_down, row, 0, 1, 2)
+    row += 1
 
     seg_t_entries = {}
     for lbl, key in [("Epochs:", 'epochs'), ("Batch Size:", 'batch_size'),
@@ -369,7 +393,8 @@ def open_training_window(parent, app_state):
         left.addWidget(QLabel(lbl), row, 0)
         e = QLineEdit(app_state.train_segmentation_params[key].get())
         seg_t_entries[key] = e
-        left.addWidget(e, row, 1); row += 1
+        left.addWidget(e, row, 1)
+        row += 1
 
     def _train_seg():
         app_state.train_segmentation_params['downsampling'].set(seg_down.isChecked())
@@ -382,35 +407,46 @@ def open_training_window(parent, app_state):
 
     # ---- Right: Classification ----
     right = QGridLayout()
-    right_w = QWidget(); right_w.setLayout(right)
+    right_w = QWidget()
+    right_w.setLayout(right)
     right_w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
     panels.addWidget(right_w, stretch=1, alignment=Qt.AlignmentFlag.AlignTop)
 
     row = 0
-    right.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+    right.addWidget(QLabel("<b style='font-size:16px'>Classification Network</b>"), row, 0, 1, 2,
+                    Qt.AlignmentFlag.AlignCenter)
     row += 1
 
     use_class_only = QCheckBox("Use classified files only")
-    right.addWidget(use_class_only, row, 0, 1, 2); row += 1
+    right.addWidget(use_class_only, row, 0, 1, 2)
+    row += 1
 
     cls_sel = Var("current_day")
     cls_grp = QButtonGroup(dlg)
     for txt, val in [("Current Day", "current_day"), ("Current Experiment", "current_experiment"),
                      ("Current Bird", "current_bird")]:
-        rb = QRadioButton(txt); cls_grp.addButton(rb)
-        if val == "current_day": rb.setChecked(True)
-        def _mc(v=val): return lambda: (cls_sel.set(v), app_state.update_batch_select_combobox_class(v))
-        rb.toggled.connect(lambda chk, cb=_mc(): cb() if chk else None)
-        right.addWidget(rb, row, 0, 1, 2); row += 1
+        rb = QRadioButton(txt)
+        cls_grp.addButton(rb)
+        if val == "current_day":
+            rb.setChecked(True)
 
-    cls_batch = QComboBox(); cls_batch.addItem("Select Batch File")
+        def _mc(v=val):
+            return lambda: (cls_sel.set(v), app_state.update_batch_select_combobox_class(v))
+
+        rb.toggled.connect(lambda chk, cb=_mc(): cb() if chk else None)
+        right.addWidget(rb, row, 0, 1, 2)
+        row += 1
+
+    cls_batch = QComboBox()
+    cls_batch.addItem("Select Batch File")
     dlg.training_batch_combobox_classification = cls_batch
     app_state.update_batch_select_combobox_class(cls_sel.get())
     right.addWidget(cls_batch, 3, 1)
 
     right.addWidget(QLabel("Training Dataset Name:"), row, 0)
     cls_ds_name = QLineEdit("edit_class_dataset_name")
-    right.addWidget(cls_ds_name, row, 1); row += 1
+    right.addWidget(cls_ds_name, row, 1)
+    row += 1
 
     spec_entries = {}
     for lbl, key in [("N Input Chunks / Size:", 'input_length'), ("Nperseg:", 'nperseg'),
@@ -418,7 +454,8 @@ def open_training_window(parent, app_state):
         right.addWidget(QLabel(lbl), row, 0)
         e = QLineEdit(app_state.spec_params[key].get())
         spec_entries[key] = e
-        right.addWidget(e, row, 1); row += 1
+        right.addWidget(e, row, 1)
+        row += 1
 
     def _create_cls_ds():
         for k, e in spec_entries.items():
@@ -429,18 +466,23 @@ def open_training_window(parent, app_state):
             cls_sel.get(), cls_batch.currentText(), b, e, d, dlg)
 
     btn_create_cls = _btn("Create Training Dataset", _create_cls_ds)
-    right.addWidget(btn_create_cls, row, 0, 1, 2); row += 1
+    right.addWidget(btn_create_cls, row, 0, 1, 2)
+    row += 1
 
-    right.addWidget(QLabel(""), row, 0); row += 1
+    right.addWidget(QLabel(""), row, 0)
+    row += 1
 
-    cls_ds_combo = QComboBox(); cls_ds_combo.addItem("Select Training Dataset")
+    cls_ds_combo = QComboBox()
+    cls_ds_combo.addItem("Select Training Dataset")
     dlg.training_dataset_combobox_classification = cls_ds_combo
     app_state.update_classification_datasets_combobox()
-    right.addWidget(cls_ds_combo, row, 0, 1, 2); row += 1
+    right.addWidget(cls_ds_combo, row, 0, 1, 2)
+    row += 1
 
     cls_down = QCheckBox("Downsampling")
     cls_down.setChecked(app_state.train_classification_params['downsampling'].get())
-    right.addWidget(cls_down, row, 0, 1, 2); row += 1
+    right.addWidget(cls_down, row, 0, 1, 2)
+    row += 1
 
     cls_t_entries = {}
     for lbl, key in [("Epochs:", 'epochs'), ("Batch Size:", 'batch_size'),
@@ -448,7 +490,8 @@ def open_training_window(parent, app_state):
         right.addWidget(QLabel(lbl), row, 0)
         e = QLineEdit(app_state.train_classification_params[key].get())
         cls_t_entries[key] = e
-        right.addWidget(e, row, 1); row += 1
+        right.addWidget(e, row, 1)
+        row += 1
 
     def _train_cls():
         app_state.train_classification_params['downsampling'].set(cls_down.isChecked())
@@ -495,30 +538,40 @@ def open_cluster_window(parent, app_state):
     outer.addLayout(grid)
     outer.addStretch()
     row = 0
-    grid.addWidget(QLabel("<b style='font-size:16px'>Cluster Operations</b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+    grid.addWidget(QLabel("<b style='font-size:16px'>Cluster Operations</b>"), row, 0, 1, 2,
+                   Qt.AlignmentFlag.AlignCenter)
     row += 1
 
     use_seg = QCheckBox("Use segmented files only")
-    grid.addWidget(use_seg, row, 0, 1, 2); row += 1
+    grid.addWidget(use_seg, row, 0, 1, 2)
+    row += 1
 
     sel = Var("current_day")
     grp = QButtonGroup(dlg)
     for txt, val in [("Current Day", "current_day"), ("Current Experiment", "current_experiment"),
                      ("Current Bird", "current_bird")]:
-        rb = QRadioButton(txt); grp.addButton(rb)
-        if val == "current_day": rb.setChecked(True)
-        def _mc(v=val): return lambda: (sel.set(v), app_state.update_batch_select_combobox_cluster(v))
-        rb.toggled.connect(lambda chk, cb=_mc(): cb() if chk else None)
-        grid.addWidget(rb, row, 0); row += 1
+        rb = QRadioButton(txt)
+        grp.addButton(rb)
+        if val == "current_day":
+            rb.setChecked(True)
 
-    batch_combo = QComboBox(); batch_combo.addItem("Select Batch File")
+        def _mc(v=val):
+            return lambda: (sel.set(v), app_state.update_batch_select_combobox_cluster(v))
+
+        rb.toggled.connect(lambda chk, cb=_mc(): cb() if chk else None)
+        grid.addWidget(rb, row, 0)
+        row += 1
+
+    batch_combo = QComboBox()
+    batch_combo.addItem("Select Batch File")
     dlg.cluster_batch_combobox = batch_combo
     app_state.update_batch_select_combobox_cluster(sel.get())
     grid.addWidget(batch_combo, 3, 1)
 
     grid.addWidget(QLabel("Cluster Dataset Name:"), row, 0)
     ds_name = QLineEdit("edit_cluster_dataset_name")
-    grid.addWidget(ds_name, row, 1); row += 1
+    grid.addWidget(ds_name, row, 1)
+    row += 1
 
     spec_entries = {}
     for lbl, key in [("Nperseg:", 'nperseg'), ("Noverlap:", 'noverlap'),
@@ -526,7 +579,8 @@ def open_cluster_window(parent, app_state):
         grid.addWidget(QLabel(lbl), row, 0)
         e = QLineEdit(app_state.spec_params[key].get())
         spec_entries[key] = e
-        grid.addWidget(e, row, 1); row += 1
+        grid.addWidget(e, row, 1)
+        row += 1
 
     def _create_ds():
         for k, e in spec_entries.items():
@@ -536,14 +590,18 @@ def open_cluster_window(parent, app_state):
                                             sel.get(), batch_combo.currentText(), b, e, d, dlg)
 
     btn_create = _btn("Create Cluster Dataset", _create_ds)
-    grid.addWidget(btn_create, row, 0, 1, 2); row += 1
+    grid.addWidget(btn_create, row, 0, 1, 2)
+    row += 1
 
-    grid.addWidget(QLabel(""), row, 0); row += 1
+    grid.addWidget(QLabel(""), row, 0)
+    row += 1
 
-    clus_combo = QComboBox(); clus_combo.addItem("Select Cluster Dataset")
+    clus_combo = QComboBox()
+    clus_combo.addItem("Select Cluster Dataset")
     dlg.cluster_dataset_combobox = clus_combo
     app_state.update_cluster_datasets_combobox()
-    grid.addWidget(clus_combo, row, 0, 1, 2); row += 1
+    grid.addWidget(clus_combo, row, 0, 1, 2)
+    row += 1
 
     umap_entries = {}
     for lbl, key in [("N_neighbors:", 'n_neighbors'), ("Min_dist:", 'min_dist'),
@@ -551,7 +609,8 @@ def open_cluster_window(parent, app_state):
         grid.addWidget(QLabel(lbl), row, 0)
         e = QLineEdit(app_state.umap_k_means_params[key].get())
         umap_entries[key] = e
-        grid.addWidget(e, row, 1); row += 1
+        grid.addWidget(e, row, 1)
+        row += 1
 
     def _cluster():
         for k, e in umap_entries.items():
@@ -559,19 +618,20 @@ def open_cluster_window(parent, app_state):
         start_clustering_thread(dlg, app_state, remove_pkl_suffix(clus_combo.currentText()))
 
     btn_cluster = _btn("Cluster Syllables", _cluster)
-    grid.addWidget(btn_cluster, row, 0, 1, 2); row += 1
+    grid.addWidget(btn_cluster, row, 0, 1, 2)
+    row += 1
 
     btn_dash = _btn("Open Dash GUI",
-                     lambda: start_dash_app_thread(app_state, remove_pkl_suffix(clus_combo.currentText())))
+                    lambda: start_dash_app_thread(app_state, remove_pkl_suffix(clus_combo.currentText())))
     grid.addWidget(btn_dash, row, 0)
 
     btn_close_dash = _btn("Close Dash GUI",
-                           lambda: stop_dash_app_thread(app_state))
+                          lambda: stop_dash_app_thread(app_state))
     grid.addWidget(btn_close_dash, row, 1)
     row += 1
 
     btn_replace = _btn("Replace Labels",
-                        lambda: replace_labels_from_df(app_state, remove_pkl_suffix(clus_combo.currentText()), dlg))
+                       lambda: replace_labels_from_df(app_state, remove_pkl_suffix(clus_combo.currentText()), dlg))
     grid.addWidget(btn_replace, row, 0, 1, 2)
     row += 1
 
