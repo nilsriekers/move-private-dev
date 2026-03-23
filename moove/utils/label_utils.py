@@ -135,6 +135,13 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
     if use_selected_files:
         files = filter_classified_files(files)
 
+    if len(files) == 0:
+        if hasattr(win, 'status_label'):
+            win.status_label.hide()
+            QApplication.processEvents()
+        show_info(parent, "Error", "No files found for the current selection/filter.")
+        return
+
     if hasattr(win, 'status_label'):
         win.status_label.hide()
         QApplication.processEvents()
@@ -168,6 +175,7 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
     from moove.utils import get_display_data, seconds_to_index
 
     if len(files) == 0:
+        invoke_in_main_thread(progressbar.hide)
         invoke_in_main_thread(lambda: show_info(
             parent, "Error", "Not enough files given! You need at least 1 file to create a dataset."))
         return

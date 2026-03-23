@@ -246,6 +246,7 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     from moove.utils import get_display_data, save_features, plot_data, extract_raw_audio
 
     if len(all_files) == 0:
+        invoke_in_main_thread(progressbar.hide)
         invoke_in_main_thread(lambda: show_info(
             parent, "Error", "Not enough files given! You need at least 1 file to create a dataset."))
         return
@@ -530,6 +531,10 @@ def start_create_segmentation_training_dataset(app_state, dataset_name, use_sele
 
     if use_selected_files:
         files = filter_segmented_files(files)
+
+    if len(files) == 0:
+        show_info(parent, "Error", "No files found for the current selection/filter.")
+        return
 
     dataset_name = str(dataset_name)
     if len(dataset_name) < 1:
