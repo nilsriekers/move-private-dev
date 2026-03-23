@@ -260,13 +260,19 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     input_array_size = input_length * chunk_size
     processed_count = 0
     failed_count = 0
-
+    skipped_no_segments = 0
+    
     for i, file_i in enumerate(all_files):
         try:
             invoke_in_main_thread(progressbar.setValue, i)
             file_data = get_display_data({"file_name": os.path.basename(file_i), "file_path": file_i}, app_state.config)
             sampling_rate, rawsong, onsets = int(file_data["sampling_rate"]), file_data["song_data"], file_data["onsets"]
             app_state.data_dir = os.path.dirname(file_i)
+
+            if onsets is None or len(onsets) == 0:
+                skipped_no_segments += 1
+                app_state.logger.warning("Skipping relabeling for '%s': no segments found.", file_i)
+                continue
 
             labels = []
 
@@ -307,13 +313,15 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
     if total_selected is None:
         total_selected = len(all_files)
-    final_skipped = max(total_selected - processed_count - failed_count, 0)
+    final_skipped = max(total_selected - processed_count - failed_count - skipped_no_segments, 0)
+
     summary = (
         "Relabeling completed.\n"
         f"Selected: {total_selected}\n"
         f"Processed: {processed_count}\n"
         f"Failed: {failed_count}\n"
-        f"Skipped: {final_skipped}"
+        f"Skipped (no segments): {skipped_no_segments}\n"
+        f"Skipped (total): {final_skipped}"
     )
     invoke_in_main_thread(lambda: show_info(
         app_state.relabel_window, "Info", summary))
