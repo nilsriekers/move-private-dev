@@ -5,6 +5,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+import re
 import seaborn as sns
 import torch
 import torch.nn as nn
@@ -22,6 +23,25 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from moove.qt_helpers import show_info
+
+
+def _torch_major_minor():
+    """Return torch major/minor as tuple, e.g. (2, 6)."""
+    match = re.match(r"(\d+)\.(\d+)", torch.__version__)
+    if not match:
+        return (0, 0)
+    return int(match.group(1)), int(match.group(2))
+
+
+def _load_checkpoint_with_version_fallback(model_path):
+    """Load checkpoint with version-aware fallback for torch >= 2.6."""
+    if _torch_major_minor() >= (2, 6):
+        try:
+            return torch.load(model_path)
+        except Exception:
+            # Trusted local checkpoint created by this app: use legacy object load.
+            return torch.load(model_path, weights_only=False)
+    return torch.load(model_path)
 
 
 def _show_status(window, text):
@@ -270,7 +290,8 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
         save_path = os.path.join(app_state.config['global_dir'], 'trained_models', f'{prefix}_model.pth')
         torch.save({'model': best_model, 'metadata': metadata}, save_path)
 
-    checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{prefix}_model.pth'))
+    model_path = os.path.join(app_state.config['global_dir'], 'trained_models', f'{prefix}_model.pth')
+    checkpoint = _load_checkpoint_with_version_fallback(model_path)
     model = checkpoint['model']
     metadata = checkpoint['metadata']
     model.to(device)
@@ -474,7 +495,8 @@ def start_classification_training(parent, app_state, dataset_name, bird):
                 app_state.logger.info(f"Early stopping triggered at epoch {epoch + 1}")
                 break
 
-    checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{prefix}_model.pth'))
+    model_path = os.path.join(app_state.config['global_dir'], 'trained_models', f'{prefix}_model.pth')
+    checkpoint = _load_checkpoint_with_version_fallback(model_path)
     model = checkpoint['model']
     model.to(device)
 
