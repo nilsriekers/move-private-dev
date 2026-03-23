@@ -8,7 +8,6 @@ import torch.nn.functional as F
 import evfuncs
 import re
 from scipy.signal import spectrogram
-import numpy as np
 
 from PyQt6.QtWidgets import QApplication
 
@@ -36,7 +35,8 @@ def load_classification_checkmarks(all_files):
     return unclass_files
 
 
-def start_create_classification_training_dataset(app_state, dataset_name, use_selected_files, selection, batch_file, bird, experiment, day, parent):
+def start_create_classification_training_dataset(app_state, dataset_name, use_selected_files, selection, batch_file,
+                                                 bird, experiment, day, parent):
     """Initialize the creation of a classification training dataset in a new thread."""
     from moove.utils import get_files_for_day, get_files_for_experiment, get_files_for_bird, filter_classified_files
 
@@ -62,7 +62,8 @@ def start_create_classification_training_dataset(app_state, dataset_name, use_se
 
     dataset_name = str(dataset_name)
     if len(dataset_name) < 1:
-        show_info(parent, "Error", "Dataset name not valid! A dataset name needs to contain at least one character.")
+        show_info(parent, "Error", "Dataset name not valid! "
+                                   "A dataset name needs to contain at least one character.")
     else:
         progressbar = win.progressbar
         progressbar.setMaximum(len(files))
@@ -107,6 +108,7 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
         if hasattr(app_state.training_window, 'status_label'):
             app_state.training_window.status_label.setText("Looking for syllables...")
             app_state.training_window.status_label.show()
+
     invoke_in_main_thread(_show_looking)
 
     def get_onsets(file_path):
@@ -126,7 +128,8 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
 
     if num_onsets == 0:
         invoke_in_main_thread(lambda: (
-            app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label') else None,
+            app_state.training_window.status_label.hide() if hasattr(app_state.training_window, 'status_label')
+            else None,
             show_info(parent, "Error", "No syllable onsets found in the given files.")))
         return
 
@@ -134,13 +137,15 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
         if hasattr(app_state.training_window, 'status_label'):
             app_state.training_window.status_label.hide()
         progressbar.show()
+
     invoke_in_main_thread(_hide_show_progress)
 
     for i, file_i in enumerate(files):
         invoke_in_main_thread(lambda: QApplication.processEvents())
         working_dir = os.getcwd()
         file_path = os.path.join(working_dir, file_i)
-        file_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path}, app_state.config)
+        file_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path},
+                                     app_state.config)
         sampling_rate = int(file_data["sampling_rate"])
         rawsong, onsets, labels = file_data["song_data"], file_data["onsets"], file_data["labels"]
 
@@ -151,11 +156,13 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
                 onset_index = int(seconds_to_index(onset, sampling_rate))
                 cutted_raw_song = rawsong[onset_index:onset_index + input_array_size]
 
-                f, t, Sxx_taf = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+                f, t, Sxx_taf = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg,
+                                            noverlap=noverlap, nfft=nfft)
                 if Sxx_taf.ndim == 2:
                     Sxx_taf = Sxx_taf[(f >= freq_cutoffs[0]) & (f <= freq_cutoffs[1]), :]
                 else:
-                    app_state.logger.warning(f"Warning: Sxx_taf is {Sxx_taf.ndim}-dimensional for file {file_i}, skipping this entry.")
+                    app_state.logger.warning(f"Warning: Sxx_taf is {Sxx_taf.ndim}-dimensional for file {file_i}, "
+                                             f"skipping this entry.")
                     continue
 
                 going_prod_df.loc[entry_no] = [file_i, syllable_no, Sxx_taf, labels[syllable_no]]
@@ -202,13 +209,20 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
     elif selection == "current_bird":
         files = get_files_for_bird(app_state, bird, batch_file)
     elif selection == "current_file":
-        files = [get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)["file_path"]]
-
+        files = [get_file_data_by_index(app_state.data_dir,
+                                        app_state.song_files,
+                                        app_state.current_file_index,
+                                        app_state)["file_path"]]
+    from IPython import embed; embed()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     try:
-        checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'), map_location=device)
+        checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'),
+                                map_location=device)
     except:
-        show_info(app_state.relabel_window, "Error", "Selected classification model doesn't exist or is not valid! Perhaps you forgot to pick a model?")
+        print(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'))
+        show_info(app_state.relabel_window, "Error",
+                  "Selected classification model doesn't exist or is not valid! "
+                  "Perhaps you forgot to pick a model?")
         return
     model, metadata = checkpoint['model'], checkpoint['metadata']
 
@@ -221,7 +235,8 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
 
     if len(files) == 0:
         if skipped_preclassified > 0:
-            show_info(app_state.relabel_window, "Info", f"No files available for relabeling. Skipped {skipped_preclassified} already classified file(s).")
+            show_info(app_state.relabel_window, "Info", f"No files available for relabeling. "
+                                                        f"Skipped {skipped_preclassified} already classified file(s).")
         else:
             show_info(app_state.relabel_window, "Info", "No files available for relabeling.")
         return
@@ -261,12 +276,14 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
     processed_count = 0
     failed_count = 0
     skipped_no_segments = 0
-    
+
     for i, file_i in enumerate(all_files):
         try:
             invoke_in_main_thread(progressbar.setValue, i)
-            file_data = get_display_data({"file_name": os.path.basename(file_i), "file_path": file_i}, app_state.config)
-            sampling_rate, rawsong, onsets = int(file_data["sampling_rate"]), file_data["song_data"], file_data["onsets"]
+            file_data = get_display_data({"file_name": os.path.basename(file_i), "file_path": file_i},
+                                         app_state.config)
+            sampling_rate, rawsong, onsets = (int(file_data["sampling_rate"]), file_data["song_data"],
+                                              file_data["onsets"])
             app_state.data_dir = os.path.dirname(file_i)
 
             if onsets is None or len(onsets) == 0:
@@ -280,7 +297,8 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
                 onset_index = int(seconds_to_index(onset, sampling_rate))
                 cutted_raw_song = rawsong[onset_index:onset_index + input_array_size]
 
-                f, _, Sxx_taf = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+                f, _, Sxx_taf = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg,
+                                            noverlap=noverlap, nfft=nfft)
                 Sxx_taf = Sxx_taf[(f >= lowcut) & (f <= highcut), :]
                 Sxx_normalized = normalize_spectrogram(Sxx_taf)
 
