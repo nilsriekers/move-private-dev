@@ -7,8 +7,6 @@ import threading
 import torch
 import re
 
-from PyQt6.QtWidgets import QApplication
-
 from moove.qt_helpers import invoke_in_main_thread, show_info
 
 matplotlib.use('Agg')
@@ -351,7 +349,8 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
 
 def start_segment_files_thread(app_state, segmentation_model_name, selection, checkbox_ow, batch_file, bird, experiment, day):
     """Start a threaded process to segment files based on a selected model and criteria."""
-    from moove.utils import get_files_for_day, get_files_for_experiment, get_files_for_bird, get_file_data_by_index
+    from moove.utils import (get_files_for_day, get_files_for_experiment, get_files_for_bird, get_file_data_by_index,
+                             _load_checkpoint_with_compat)
 
     files = []
     if selection == "current_day":
@@ -364,11 +363,26 @@ def start_segment_files_thread(app_state, segmentation_model_name, selection, ch
         files = [get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)["file_path"]]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    try:
-        checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{segmentation_model_name}.pth'), map_location=device)
-    except:
-        show_info(app_state.resegment_window, "Error", "Selected segmentation model doesn't exist or is not valid!")
+    if segmentation_model_name is None or segmentation_model_name == "":
+        show_info(app_state.relabel_window, "Error", "Please select a trained classification model to proceed.")
         return
+    model_path = os.path.join(app_state.config['global_dir'], 'trained_models', f'{segmentation_model_name}.pth')
+
+    try:
+        checkpoint = _load_checkpoint_with_compat(model_path, device, app_state)
+    except Exception as e:
+        app_state.logger.error("Could not load checkpoint '%s': %s", model_path, e)
+        show_info(app_state.resegment_window, "Error",
+                  "Selected classification model could not be loaded."
+                  "Please verify model format / torch compatibility.\n\n"
+                  f"Details: {e}")
+        return
+
+    if not isinstance(checkpoint, dict) or 'model' not in checkpoint or 'metadata' not in checkpoint:
+        show_info(app_state.relabel_window, "Error",
+                  "Selected classification model has an unsupported checkpoint structure.")
+        return
+
     model, metadata = checkpoint['model'], checkpoint['metadata']
     model.to(device)
     model.eval()
