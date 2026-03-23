@@ -71,6 +71,7 @@ class AppState:
         self.selected_syllable_index = None
         self.data_dir = ""
         self.current_file_index = 0
+        self.last_file_delta = 0
         self.song_files = []
         self.current_batch_file = "batch.txt"
         self.window_geometry = None
@@ -299,6 +300,7 @@ class AppState:
         return self.data_dir
 
     def change_file(self, delta):
+        self.last_file_delta = delta
         current_file_index = self.current_file_index
         current_file_index += delta
         current_file_index = max(0, min(len(self.song_files) - 1, current_file_index))

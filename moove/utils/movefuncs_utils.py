@@ -274,7 +274,8 @@ def create_recfile_for_existing_audio(
     """
     wav_path = Path(wav_path)
     if not wav_path.exists():
-        raise FileNotFoundError(f"Audio file not found: {wav_path}")
+        print(f"Audio file not found: {wav_path}")
+        return None
 
     suffix = wav_path.suffix.lower()
     if suffix == ".wav":

@@ -85,6 +85,7 @@ def segment_evfuncs(app_state, progressbar, files):
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
+    failed_count = 0
 
     for i, file_i in enumerate(files):
         try:
@@ -115,8 +116,13 @@ def segment_evfuncs(app_state, progressbar, files):
 
             save_notmat(os.path.join(app_state.data_dir, file_data["file_name"] + ".not.mat"), file_data)
         except Exception as e:
-            app_state.logger.error(f"File {file_i} could not be processed correctly: {e}. Check manually.")
-            return
+            if isinstance(e, FileNotFoundError):
+                app_state.logger.warning("Skipped missing file during Evfuncs segmentation: %s", file_i)
+            else:
+                app_state.logger.warning("Skipped file during Evfuncs segmentation: %s (%s)", file_i, e)
+            print(f"Skipped file: {file_i}")
+            failed_count += 1
+            continue
 
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
@@ -126,7 +132,8 @@ def segment_evfuncs(app_state, progressbar, files):
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(progressbar.hide)
     invoke_in_main_thread(lambda: show_info(
-        app_state.resegment_window, "Info", "Segmentation with Evfuncs completed successfully!"))
+        app_state.resegment_window, "Info",
+        f"Segmentation with Evfuncs completed!\nFailed files: {failed_count}"))
 
 
 def segment_ml(
@@ -248,7 +255,15 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     invoke_in_main_thread(_hide_show_progress)
 
     for file_index, file_path in enumerate(all_files):
-        display_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path}, app_state.config)
+        try:
+            display_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path}, app_state.config)
+        except Exception as e:
+            if isinstance(e, FileNotFoundError):
+                app_state.logger.warning("Skipped missing file in seg dataset creation: %s", file_path)
+            else:
+                app_state.logger.warning("Skipped file in seg dataset creation: %s (%s)", file_path, e)
+            print(f"Skipped file: {file_path}")
+            continue
         sampling_rate = int(display_data["sampling_rate"])
         rawsong = display_data["song_data"]
         onsets = (np.array(display_data["onsets"]) * sampling_rate / 1000).astype(int)
@@ -272,6 +287,12 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
         concatenated = generate_concatenated_chunks_with_labels(np.array(file_features), hist_size, overlap_chunks)
         if concatenated.size > 0:
             all_features.extend(concatenated)
+
+    if len(all_features) == 0:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            app_state.training_window, "Error", "No valid files could be processed for segmentation dataset creation."))
+        return
 
     feature_array = np.array(all_features, dtype=object)
     save_features(app_state, dataset_name, feature_array, chunk_size=chunk_size, hist_size=hist_size, num_syls=num_segs)
@@ -303,6 +324,7 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []
     original_current_file_index = app_state.current_file_index
+    failed_count = 0
 
     hist_size = int(metadata['hist_size'])
     chunk_size = int(metadata['chunk_size'])
@@ -332,18 +354,13 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
             save_notmat(notmat_path, display_data)
             # app_state.logger.info(f"ML segmentation: saved {len(onsets)} segments to {notmat_path}")
         except Exception as e:
-            app_state.logger.error(f"File {file_path} could not be processed correctly: {e}. Check manually.")
-            import traceback
-            app_state.logger.error(traceback.format_exc())
-            # Restore state before returning so the GUI stays consistent
-            app_state.data_dir = original_data_dir
-            app_state.song_files = original_song_files
-            app_state.current_file_index = original_current_file_index
-            invoke_in_main_thread(progressbar.hide)
-            invoke_in_main_thread(lambda e=e: show_info(
-                app_state.resegment_window, "Error",
-                f"Segmentation failed: {e}"))
-            return
+            if isinstance(e, FileNotFoundError):
+                app_state.logger.warning("Skipped missing file during ML segmentation: %s", file_path)
+            else:
+                app_state.logger.warning("Skipped file during ML segmentation: %s (%s)", file_path, e)
+            print(f"Skipped file: {file_path}")
+            failed_count += 1
+            continue
 
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
@@ -352,7 +369,8 @@ def segment_files_ml(app_state, progressbar, all_files, model, metadata, device)
     invoke_in_main_thread(progressbar.hide)
     invoke_in_main_thread(plot_data, app_state)
     invoke_in_main_thread(lambda: show_info(
-        app_state.resegment_window, "Info", "Segmentation completed successfully!"))
+        app_state.resegment_window, "Info",
+        f"Segmentation completed!\nFailed files: {failed_count}"))
 
 
 def start_segment_files_thread(app_state, segmentation_model_name, selection, checkbox_ow, batch_file, bird, experiment, day):

@@ -113,7 +113,12 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
         invoke_in_main_thread(progressbar.setValue, i)
         file_i = all_files[i]
         file_path = {"file_name": os.path.basename(file_i), "file_path": os.path.join(os.getcwd(), file_i)}
-        display_dict = get_display_data(file_path, app_state.config)
+        try:
+            display_dict = get_display_data(file_path, app_state.config)
+        except Exception as e:
+            app_state.logger.error("Skipping file '%s' in clustering dataset creation: %s", file_i, e)
+            print(f"Skipped file: {file_i}")
+            continue
         app_state.data_dir = os.path.dirname(file_i)
 
         sampling_rate = int(display_dict["sampling_rate"])
@@ -325,6 +330,7 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
 
         except Exception as e:
             app_state.logger.error(f"File {file} could not be processed correctly: {e}. Check manually.")
+            print(f"Skipped file: {file}")
             failed_count += 1
             continue
 

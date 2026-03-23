@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import traceback
+from moove.qt_helpers import show_info
 from moove.utils.audio_utils import (decibel)
 from moove.utils.movefuncs_utils import (load_recfile, ensure_recfile_exists_and_has_flags)
 
@@ -224,6 +225,9 @@ def plot_data(app_state):
         file_path = get_file_data_by_index(app_state.data_dir, app_state.song_files, app_state.current_file_index, app_state)
         ensure_recfile_exists_and_has_flags(file_path["file_path"])
         app_state.display_dict = get_display_data(file_path, app_state.config)
+        app_state._file_skip_attempted = False
+        app_state._startup_default_attempted = False
+        app_state._default_first_attempted = False
         
         update_plots(app_state.display_dict, app_state, file_path)
         ax1, ax2, ax3 = app_state.get_axes()
@@ -261,12 +265,56 @@ def plot_data(app_state):
         app_state.logger.error("plot_data failed: %s", exc)
         app_state.logger.debug("Full traceback:\n%s", traceback.format_exc())
 
+        is_missing_file = isinstance(exc, FileNotFoundError) or "does not exist" in str(exc)
+
+        # Startup context: if stored file is missing, default to first file of current day.
+        if is_missing_file and not app_state.init_flag and not getattr(app_state, "_startup_default_attempted", False):
+            app_state._startup_default_attempted = True
+            try:
+                existing_files = []
+                for name in app_state.song_files:
+                    candidate = os.path.join(app_state.data_dir, name)
+                    if not os.path.isabs(candidate):
+                        candidate = os.path.join(os.getcwd(), candidate)
+                    if os.path.exists(candidate):
+                        existing_files.append(name)
+
+                if existing_files:
+                    app_state.song_files = existing_files
+                    app_state.current_file_index = 0
+                    if app_state.combobox is not None:
+                        app_state.combobox.blockSignals(True)
+                        app_state.combobox.clear()
+                        app_state.combobox.addItems(app_state.song_files)
+                        app_state.combobox.setCurrentIndex(0)
+                        app_state.combobox.blockSignals(False)
+                    show_info(None, "Warning",
+                              "Das zuletzt geoeffnete File wurde nicht gefunden. "
+                              "Es wird mit dem ersten verfuegbaren File fortgefahren.")
+                    print(f"Startup fallback: defaulted to first existing batch file: {app_state.song_files[0]}")
+                    plot_data(app_state)
+                    return
+            except Exception as startup_error:
+                app_state.logger.error("Startup default fallback failed: %s", startup_error)
+
+        # File navigation context: if previous/next failed, move one more in same direction.
+        nav_delta = getattr(app_state, "last_file_delta", 0)
+        if is_missing_file and app_state.init_flag and nav_delta in (-1, 1) and not getattr(app_state, "_file_skip_attempted", False):
+            app_state._file_skip_attempted = True
+            try:
+                app_state.change_file(nav_delta)
+                plot_data(app_state)
+                return
+            except Exception as nav_error:
+                app_state.logger.error("Navigation fallback failed: %s", nav_error)
+
         # If there's an error with the current file, try to fall back to the last valid file
         if hasattr(app_state, 'last_valid_file_path') and app_state.last_valid_file_path:
             try:
                 # Try to plot the last valid file instead
                 fallback_file_data = {"file_name": os.path.basename(app_state.last_valid_file_path), 
                                     "file_path": app_state.last_valid_file_path}
+                ensure_recfile_exists_and_has_flags(fallback_file_data["file_path"])
                 app_state.display_dict = get_display_data(fallback_file_data, app_state.config)
                 
                 update_plots(app_state.display_dict, app_state, fallback_file_data)

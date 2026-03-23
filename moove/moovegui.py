@@ -298,6 +298,16 @@ class MooveMainWindow(QMainWindow):
                     fh.write('\n'.join(f for f in keep if f in valid_files))
         s.song_files = read_batch(s.data_dir, s.current_batch_file)
 
+        # If the previously stored file is gone, default to the first file of the day.
+        if s.song_files:
+            if s.current_file_index is None or s.current_file_index < 0 or s.current_file_index >= len(s.song_files):
+                s.current_file_index = 0
+            else:
+                selected_name = s.song_files[s.current_file_index]
+                selected_path = os.path.join(s.data_dir, selected_name)
+                if not os.path.exists(selected_path):
+                    s.current_file_index = 0
+
         # File combobox
         self.file_combo = QComboBox()
         self.file_combo.setMinimumWidth(260)
@@ -332,9 +342,7 @@ class MooveMainWindow(QMainWindow):
 
         parent_layout.addLayout(bar)
 
-    # ------------------------------------------------------------------
     # Plot area (matplotlib canvas + range slider)
-    # ------------------------------------------------------------------
     def _build_plot_area(self, parent_layout):
         s = self.app_state
         plot_row = QHBoxLayout()
@@ -349,9 +357,13 @@ class MooveMainWindow(QMainWindow):
         s.set_axes(self.ax1, self.ax2, self.ax3)
         s.set_canvas(self.canvas)
         if s.song_files:
-            s.display_dict = get_display_data(
-                get_file_data_by_index(s.data_dir, s.song_files, s.current_file_index, s),
-                s.config)
+            try:
+                s.display_dict = get_display_data(
+                    get_file_data_by_index(s.data_dir, s.song_files, s.current_file_index, s),
+                    s.config)
+            except Exception as exc:
+                s.logger.warning("Initial file load failed, will use plot fallback handling: %s", exc)
+                s.display_dict = None
         else:
             s.display_dict = None
         s.ax3_background = s.canvas.copy_from_bbox(s.ax3.bbox)

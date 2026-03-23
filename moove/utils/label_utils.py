@@ -189,8 +189,13 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
         invoke_in_main_thread(lambda: QApplication.processEvents())
         working_dir = os.getcwd()
         file_path = os.path.join(working_dir, file_i)
-        file_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path},
-                                     app_state.config)
+        try:
+            file_data = get_display_data({"file_name": os.path.basename(file_path), "file_path": file_path},
+                                         app_state.config)
+        except Exception as e:
+            app_state.logger.error("Skipping file '%s' in class dataset creation: %s", file_i, e)
+            print(f"Skipped file: {file_i}")
+            continue
         sampling_rate = int(file_data["sampling_rate"])
         rawsong, onsets, labels = file_data["song_data"], file_data["onsets"], file_data["labels"]
 
@@ -220,6 +225,12 @@ def create_classification_training_dataset(app_state, progressbar, dataset_name,
         'lowcut': freq_cutoffs[0],
         'highcut': freq_cutoffs[1],
     }
+
+    if going_prod_df.empty:
+        invoke_in_main_thread(progressbar.hide)
+        invoke_in_main_thread(lambda: show_info(
+            parent, "Error", "No valid files could be processed for classification dataset creation."))
+        return
 
     save_path = os.path.join(app_state.config['global_dir'], 'training_data', f'{dataset_name}_class.pkl')
     with open(save_path, 'wb') as f:
@@ -345,6 +356,7 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
             if onsets is None or len(onsets) == 0:
                 skipped_no_segments += 1
                 app_state.logger.warning("Skipping relabeling for '%s': no segments found.", file_i)
+                print(f"Skipped file (no segments): {file_i}")
                 continue
 
             labels = []
@@ -372,6 +384,7 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
         except Exception as e:
             app_state.logger.error(f"File {file_i} could not be processed correctly: {e}. Check manually.")
+            print(f"Skipped file: {file_i}")
             failed_count += 1
             continue
 
@@ -387,7 +400,7 @@ def ml_classify_file(app_state, progressbar, max_value, all_files, model, metada
 
     if total_selected is None:
         total_selected = len(all_files)
-    final_skipped = max(total_selected - processed_count - failed_count - skipped_no_segments, 0)
+    final_skipped = failed_count + skipped_no_segments
 
     summary = (
         "Relabeling completed.\n"
