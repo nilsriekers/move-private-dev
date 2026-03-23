@@ -1,5 +1,6 @@
 # utils/label_utils.py
 import os
+import shutil
 import pandas as pd
 import pickle
 import threading
@@ -12,6 +13,43 @@ from scipy.signal import spectrogram
 from PyQt6.QtWidgets import QApplication
 
 from moove.qt_helpers import invoke_in_main_thread, show_info
+
+
+def _torch_major_minor():
+    """Return torch major/minor as tuple, e.g. (2, 6)."""
+    match = re.match(r"(\d+)\.(\d+)", torch.__version__)
+    if not match:
+        return (0, 0)
+    return int(match.group(1)), int(match.group(2))
+
+
+def _load_checkpoint_with_compat(model_path, device, app_state):
+    """Load checkpoint with fallback for legacy (<2.6) .pth files and migrate in place."""
+    try:
+        return torch.load(model_path, map_location=device)
+    except Exception as load_error:
+        # Torch >= 2.6 is stricter by default; allow loading trusted legacy checkpoints.
+        if _torch_major_minor() >= (2, 6):
+            try:
+                checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+
+                # Keep file name and make future loads in this environment more stable.
+                backup_path = model_path + ".legacy.bak"
+                if not os.path.exists(backup_path):
+                    shutil.copy2(model_path, backup_path)
+                torch.save(checkpoint, model_path)
+
+                app_state.logger.warning(
+                    "Loaded legacy checkpoint via weights_only=False and migrated in place: %s",
+                    model_path,
+                )
+                return checkpoint
+            except Exception as legacy_error:
+                raise RuntimeError(
+                    f"Checkpoint could not be loaded (default): {load_error}; "
+                    f"legacy fallback failed: {legacy_error}"
+                ) from legacy_error
+        raise
 
 
 def load_classification_checkmarks(all_files):
@@ -213,17 +251,28 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
                                         app_state.song_files,
                                         app_state.current_file_index,
                                         app_state)["file_path"]]
-    from IPython import embed; embed()
+        
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    try:
-        checkpoint = torch.load(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'),
-                                map_location=device)
-    except:
-        print(os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth'))
-        show_info(app_state.relabel_window, "Error",
-                  "Selected classification model doesn't exist or is not valid! "
-                  "Perhaps you forgot to pick a model?")
+    print(model_name)
+    if model_name is None or model_name == "":
+        show_info(app_state.relabel_window, "Error", "Please select a trained classification model to proceed.")
         return
+    model_path = os.path.join(app_state.config['global_dir'], 'trained_models', f'{model_name}.pth')
+    try:
+        checkpoint = _load_checkpoint_with_compat(model_path, device, app_state)
+    except Exception as e:
+        app_state.logger.error("Could not load checkpoint '%s': %s", model_path, e)
+        show_info(app_state.relabel_window, "Error",
+                  "Selected classification model could not be loaded."
+                  "Please verify model format / torch compatibility.\n\n"
+                  f"Details: {e}")
+        return
+
+    if not isinstance(checkpoint, dict) or 'model' not in checkpoint or 'metadata' not in checkpoint:
+        show_info(app_state.relabel_window, "Error",
+                  "Selected classification model has an unsupported checkpoint structure.")
+        return
+
     model, metadata = checkpoint['model'], checkpoint['metadata']
 
     model.to(device).eval()
