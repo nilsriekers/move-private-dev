@@ -21,7 +21,8 @@ from moove.qt_helpers import invoke_in_main_thread, show_info
 warnings.filterwarnings('ignore')
 
 
-def start_create_cluster_dataset_thread(app_state, dataset_name, use_selected_files, selection, batch_file, bird, experiment, day, parent):
+def start_create_cluster_dataset_thread(app_state, dataset_name, use_selected_files, selection, batch_file, bird,
+                                        experiment, day, parent):
     """Start a thread to create a cluster dataset based on selected files and criteria."""
     from moove.utils import get_files_for_day, get_files_for_experiment, get_files_for_bird, filter_segmented_files
 
@@ -79,6 +80,7 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
         if hasattr(app_state.cluster_window, 'status_label'):
             app_state.cluster_window.status_label.setText("Looking for segments...")
             app_state.cluster_window.status_label.show()
+
     invoke_in_main_thread(_show_looking)
 
     def get_onset_offset_info(file_path):
@@ -104,6 +106,7 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
         if hasattr(app_state.cluster_window, 'status_label'):
             app_state.cluster_window.status_label.hide()
         progressbar.show()
+
     invoke_in_main_thread(_hide_show_progress)
 
     for i in range(max_value):
@@ -129,7 +132,8 @@ def create_cluster_dataset(app_state, dataset_name, progressbar, max_value, all_
                 onset_index = int(seconds_to_index(onset, sampling_rate))
                 offset_index = int(seconds_to_index(offset, sampling_rate))
                 cutted_raw_song = rawsong[onset_index:offset_index]
-                f, t, Sxx_cluster = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+                f, t, Sxx_cluster = spectrogram(cutted_raw_song, fs=sampling_rate, nperseg=nperseg, noverlap=noverlap,
+                                                nfft=nfft)
 
                 Sxx_cluster = Sxx_cluster[(f >= freq_cutoffs[0]) & (f <= freq_cutoffs[1]), :]
 
@@ -189,6 +193,7 @@ def run_clustering(parent, app_state, dataset_name):
         if hasattr(app_state.cluster_window, 'status_label'):
             app_state.cluster_window.status_label.setText("Running...")
             app_state.cluster_window.status_label.show()
+
     invoke_in_main_thread(_show_running)
 
     dataset_path = os.path.join(app_state.config['global_dir'], 'cluster_data', dataset_name_pkl)
@@ -220,6 +225,7 @@ def run_clustering(parent, app_state, dataset_name):
     def _hide_running():
         if hasattr(app_state.cluster_window, 'status_label'):
             app_state.cluster_window.status_label.hide()
+
     invoke_in_main_thread(_hide_running)
 
     app_state.logger.debug("Clustering complete. Results saved to %s", output_path)
@@ -284,6 +290,10 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
 
     app_state.logger.debug("Starting replacement of syllables with dataset %s", dataset_name)
 
+    # counters for summary info window
+    processed_count = 0
+    failed_count = 0
+
     win = app_state.cluster_window
     progressbar = win.progressbar
     progressbar.setMaximum(len(files))
@@ -294,7 +304,8 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
         try:
             invoke_in_main_thread(progressbar.setValue, i)
             if 'clustered_label' not in df.columns:
-                raise KeyError("Dataset has not been clustered yet. Please cluster the dataset first before replacing labels.")
+                raise KeyError(
+                    "Dataset has not been clustered yet. Please cluster the dataset first before replacing labels.")
             labels = df.loc[df['file'] == file]['clustered_label'].astype(str).str.cat(sep='')
 
             display_dict = get_display_data({"file_name": os.path.basename(file), "file_path": file}, app_state.config)
@@ -304,10 +315,12 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
             save_path = os.path.join(app_state.data_dir, f"{display_dict['file_name']}.not.mat")
             app_state.logger.debug("Saving labels to %s", save_path)
             save_notmat(save_path, display_dict)
+            processed_count += 1
 
         except Exception as e:
             app_state.logger.error(f"File {file} could not be processed correctly: {e}. Check manually.")
-            return
+            failed_count += 1
+            continue
 
     app_state.data_dir = original_data_dir
     app_state.song_files = original_song_files
@@ -317,5 +330,9 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
     invoke_in_main_thread(progressbar.hide)
     invoke_in_main_thread(app_state.reset_edit_type)
     invoke_in_main_thread(plot_data, app_state)
+
     invoke_in_main_thread(lambda: show_info(
-        parent, "Info", "Replacement of syllables complete!"))
+        parent, "Info", f"Replacement of syllables complete!\n\n"
+                        f"Total: {len(files)}\n"
+                        f"Processed: {processed_count}\n"
+                        f"Failed: {failed_count}\n"))
