@@ -265,7 +265,7 @@ class AppState:
         for t in texts:
             t.set_visible(True)
         self.ax2.draw(renderer)
-        self.canvas.blit(self.ax2.bbox)
+        # Don't blit here to avoid coordinate synchronization issues in PyQt
 
     def redraw_spectrogram(self, vmin, vmax):
         if self.spec:
