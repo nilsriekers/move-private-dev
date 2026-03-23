@@ -48,7 +48,7 @@ def _get_bird_exp_day(app_state):
 # Resegment Dialog
 # ======================================================================
 def open_resegment_window(parent, app_state):
-    from moove.utils import start_segment_evfuncs, start_segment_files_thread
+    from moove.utils import start_segment_evfuncs, start_segment_files_thread, plot_data
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Resegmentation")
@@ -137,6 +137,23 @@ def open_resegment_window(parent, app_state):
         start_segment_evfuncs(app_state, ev_sel.get(), ev_batch_combo.currentText(), b, e, d)
 
     btn_ev = _btn("Segment", _do_ev_segment)
+    left.addWidget(btn_ev, row, 0, 1, 2)
+    row += 1
+    left.addWidget(QLabel("<b style='font-size:16px'></b>"), row, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+    row += 1
+    left.addWidget(QLabel("<b style='font-size:16px'>Set Manual Threshold</b>"), row, 0, 1, 2,
+                   Qt.AlignmentFlag.AlignCenter)
+    row += 1
+    left.addWidget(QLabel("New Threshold"), row, 0)
+    entry_thres = QLineEdit(app_state.evfuncs_params['threshold'].get())
+    left.addWidget(entry_thres, row, 1)
+    row += 1
+
+    def _do_get_threshold():
+        app_state.evfuncs_params['threshold'].set(entry_thres.text())
+        plot_data(app_state)
+
+    btn_ev = _btn("Set Threshold", _do_get_threshold)
     left.addWidget(btn_ev, row, 0, 1, 2)
 
     # --- Right: Segmentation Network ---
@@ -339,7 +356,7 @@ def open_training_window(parent, app_state):
     from moove.utils import (
         start_create_segmentation_training_dataset, start_segmentation_training,
         start_create_classification_training_dataset, start_classification_training,
-        )
+    )
 
     dlg = QDialog(parent)
     dlg.setWindowTitle("Training")
