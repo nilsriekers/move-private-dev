@@ -238,12 +238,13 @@ def plot_clusters(parent, app_state, low_dimensional_data, labels, output_path):
     dlg.resize(800, 600)
     layout = QVBoxLayout(dlg)
 
-    fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    fig.subplots_adjust(left=0.124, bottom=0.138, top=0.912, right=0.842, wspace=0.2, hspace=0.2)
     scatter = ax.scatter(low_dimensional_data[:, 0], low_dimensional_data[:, 1],
                          c=numeric_labels, s=5, cmap=cm.get_cmap('jet'))
 
     handles, _ = scatter.legend_elements()
-    legend = ax.legend(handles, unique_labels, title="Labels", loc='upper left', bbox_to_anchor=(1.01, 1.0))
+    legend = ax.legend(handles, unique_labels, title="Labels", loc='center left', bbox_to_anchor=(1.02, 0.5))
     ax.add_artist(legend)
     ax.set_title("UMAP Clustering")
     ax.set_xlabel("UMAP1")
