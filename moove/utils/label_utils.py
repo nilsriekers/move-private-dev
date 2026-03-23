@@ -253,7 +253,7 @@ def start_classify_files_thread(app_state, model_name, selection, checkbox_ow, b
                                         app_state)["file_path"]]
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(model_name)
+
     if model_name is None or model_name == "":
         show_info(app_state.relabel_window, "Error", "Please select a trained classification model to proceed.")
         return
