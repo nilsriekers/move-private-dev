@@ -13,6 +13,10 @@ from scipy.signal import spectrogram
 from PyQt6.QtWidgets import QApplication
 
 from moove.qt_helpers import invoke_in_main_thread, show_info
+from moove.utils.movefuncs_utils import (
+    create_recfile_for_existing_audio,
+    ensure_hand_segmented_and_classified_lines,
+)
 
 
 def _torch_major_minor():
@@ -59,15 +63,18 @@ def load_classification_checkmarks(all_files):
         recfile_path = os.path.splitext(file)[0] + ".rec"
         if not os.path.exists(recfile_path):
             # Missing recfile should not block relabeling.
+            create_recfile_for_existing_audio(file)
             unclass_files.append(file)
             continue
         with open(recfile_path, "r") as f:
             content = f.read()
 
-        hand_segmented_pattern = r"Hand Classified = (\d+)"
-        hand_segmented_match = re.search(hand_segmented_pattern, content)
+        content = ensure_hand_segmented_and_classified_lines(recfile_path, content)
 
-        if not hand_segmented_match or hand_segmented_match.group(1) == '0':
+        hand_classified_pattern = r"Hand Classified = (\d+)"
+        hand_classified_pattern = re.search(hand_classified_pattern, content)
+
+        if hand_classified_pattern.group(1) == '0':
             unclass_files.append(file)
 
     return unclass_files

@@ -1,4 +1,5 @@
 # utils/movefuncs_utils.py
+import datetime
 import numpy as np
 import os
 import re
@@ -74,6 +75,69 @@ def save_notmat(filename, notmat_dict):
     save_dict['__header__'] = header.encode('latin-1') if isinstance(header, str) else header
 
     savemat(filename, save_dict, do_compression=True)
+
+
+def ensure_hand_segmented_and_classified_lines(recfile_path, content):
+    """Ensure hand-segmentation/classification lines exist in template order.
+
+    Missing lines are inserted in-place without regenerating the whole file.
+    Target order is:
+    - Hand Segmented = ...
+    - Hand Classified = ...
+    """
+    has_hand_segmented = re.search(r"Hand Segmented = (\d+)", content) is not None
+    has_hand_classified = re.search(r"Hand Classified = (\d+)", content) is not None
+    if has_hand_segmented and has_hand_classified:
+        return content
+
+    lines = content.splitlines()
+    changed = False
+
+    if not has_hand_segmented:
+        insert_idx = None
+        for idx, line in enumerate(lines):
+            if line.startswith("Hand Classified ="):
+                insert_idx = idx
+                break
+
+        if insert_idx is None:
+            for idx, line in enumerate(lines):
+                if line.startswith("Catch Song ="):
+                    insert_idx = idx + 1
+                    break
+
+        if insert_idx is not None:
+            lines.insert(insert_idx, "Hand Segmented = 0")
+            changed = True
+
+    if not has_hand_classified:
+        insert_idx = None
+        for idx, line in enumerate(lines):
+            if line.startswith("Hand Segmented ="):
+                insert_idx = idx + 1
+                break
+
+        if insert_idx is None:
+            for idx, line in enumerate(lines):
+                if line.startswith("Catch Song ="):
+                    insert_idx = idx + 1
+                    break
+
+        if insert_idx is not None:
+            lines.insert(insert_idx, "Hand Classified = 0")
+            changed = True
+
+    if not changed:
+        return content
+
+    updated_content = "\n".join(lines)
+    if content.endswith("\n"):
+        updated_content += "\n"
+
+    with open(recfile_path, "w") as f:
+        f.write(updated_content)
+
+    return updated_content
 
 
 def load_recfile(file_path):
@@ -161,6 +225,106 @@ Feedback information:
 
     with open(file_path, 'w') as f:
         f.write(output)
+
+
+def create_recfile_for_existing_audio(
+    wav_path,
+    notmat_path=None,
+    t_before=2.0000000000E+00,
+    t_after=1.0000000000E+00,
+    catch_song=0,
+    hand_segmented=0,
+    hand_classified=0,
+    overwrite=False,
+):
+    """Create a .rec file for an existing .wav file.
+
+    All timing and hardware parameters are derived from the wav file.
+    The notmat file is optional; if supplied, its sampling rate is checked
+    against the wav to catch mismatches.
+
+    Parameters
+    ----------
+    wav_path : str or Path
+        Path to the .wav file.
+    notmat_path : str or Path, optional
+        Path to the matching .not.mat file.  Not required for rec-file
+        creation, but when provided the sampling rates of both files are
+        compared and a warning is raised on mismatch.
+    t_before : float, optional
+        Pre-trigger buffer in seconds (default 0.0).
+    t_after : float, optional
+        Post-trigger window in seconds.  Defaults to the full audio
+        duration when not specified.
+    catch_song : int, optional
+        Value for the ``Catch Song`` field (default 0).
+    hand_segmented : int, optional
+        Value for the ``Hand Segmented`` field (default 0).
+    hand_classified : int, optional
+        Value for the ``Hand Classified`` field (default 0).
+    overwrite : bool, optional
+        If *False* (default) raise an error when a .rec file already exists.
+
+    Returns
+    -------
+    str
+        Absolute path of the newly created .rec file.
+    """
+    wav_path = Path(wav_path)
+    if not wav_path.exists():
+        raise FileNotFoundError(f"Wav file not found: {wav_path}")
+
+    sampling_rate, song_data = wav.read(str(wav_path))
+    chans = 1 if song_data.ndim == 1 else song_data.shape[1]
+    total_samples = len(song_data)
+    duration_s = total_samples / sampling_rate
+
+    if t_after is None:
+        t_after = duration_s
+
+    if notmat_path is not None:
+        try:
+            import evfuncs
+            notmat = evfuncs.load_notmat(str(notmat_path))
+            notmat_fs = float(notmat.get("Fs", sampling_rate))
+            if abs(notmat_fs - sampling_rate) > 1:
+                import warnings
+                warnings.warn(
+                    f"Sampling rate mismatch: wav={sampling_rate} Hz, "
+                    f"notmat Fs={notmat_fs} Hz"
+                )
+        except Exception:
+            pass
+
+    file_created = (
+        datetime.datetime.now().strftime("%a, %b %d, %Y, %H:%M:%S") + ".0"
+    )
+
+    recfile_dict = {
+        "file_created": file_created,
+        "begin_rec": 0,
+        "trig_time": int(t_before * 1000),
+        "rec_end": int(duration_s * 1000),
+        "adfreq": sampling_rate,
+        "chans": chans,
+        "samples": total_samples,
+        "catch_song": catch_song,
+        "hand_segmented": hand_segmented,
+        "hand_classified": hand_classified,
+        "t_before": t_before,
+        "t_after": t_after,
+        "feedback_info": [],
+    }
+
+    rec_path = wav_path.with_suffix(".rec")
+    if rec_path.exists() and not overwrite:
+        raise FileExistsError(
+            f"Rec file already exists: {rec_path}. "
+            "Pass overwrite=True to replace it."
+        )
+
+    save_recfile(str(rec_path), recfile_dict)
+    return str(rec_path)
 
 
 def extract_raw_audio(full_audio_data, chunk_size):

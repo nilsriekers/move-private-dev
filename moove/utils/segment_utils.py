@@ -8,6 +8,10 @@ import torch
 import re
 
 from moove.qt_helpers import invoke_in_main_thread, show_info
+from moove.utils.movefuncs_utils import (
+    create_recfile_for_existing_audio,
+    ensure_hand_segmented_and_classified_lines,
+)
 
 matplotlib.use('Agg')
 
@@ -23,18 +27,22 @@ def load_segmentation_checkmarks(all_files):
     unsegmented_files = []
     for file in all_files:
         recfile_path = os.path.splitext(file)[0] + ".rec"
-        try:
-            with open(recfile_path, "r") as f:
-                content = f.read()
-        except (FileNotFoundError, OSError):
-            # No .rec file → not segmented → keep
+        if not os.path.exists(recfile_path):
+            # Missing recfile should not block relabeling.
+            create_recfile_for_existing_audio(file)
             unsegmented_files.append(file)
             continue
-        match = re.search(r"Hand Segmented\s*=\s*(\d+)", content)
-        if match and match.group(1) == '1':
-            # Explicitly marked as segmented → skip
-            continue
-        unsegmented_files.append(file)
+        with open(recfile_path, "r") as f:
+            content = f.read()
+
+        content = ensure_hand_segmented_and_classified_lines(recfile_path, content)
+
+        hand_segmented_pattern = r"Hand Segmented = (\d+)"
+        hand_segmented_match = re.search(hand_segmented_pattern, content)
+
+        if hand_segmented_match.group(1) == '0':
+            unsegmented_files.append(file)
+
     return unsegmented_files
 
 
