@@ -63,6 +63,31 @@ def show_info(parent, title, message):
     box.exec()
 
 
+def show_confirm_action_window(parent, title, message):
+    """Show a confirmation dialog. Returns True if user clicks OK, False otherwise."""
+    if parent is not None and not parent.isVisible():
+        parent = None
+
+    box = QMessageBox(
+        QMessageBox.Icon.Question,
+        title,
+        message,
+        QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+        parent
+    )
+
+    box.setDefaultButton(QMessageBox.StandardButton.Ok)
+
+    pix = _app_icon_pixmap()
+    if pix is not None:
+        box.setWindowIcon(QApplication.instance().windowIcon())
+        box.setIconPixmap(pix)
+
+    result = box.exec()
+
+    return result == QMessageBox.StandardButton.Ok
+
+
 def set_combo_items(combo, items, current_text=None):
     """Replace all items in a QComboBox, optionally selecting one."""
     if combo is None:

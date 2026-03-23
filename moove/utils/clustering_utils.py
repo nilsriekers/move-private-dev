@@ -16,7 +16,7 @@ from umap import UMAP
 
 from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout
 
-from moove.qt_helpers import invoke_in_main_thread, show_info
+from moove.qt_helpers import invoke_in_main_thread, show_info, show_confirm_action_window
 
 warnings.filterwarnings('ignore')
 
@@ -168,7 +168,10 @@ def start_clustering_thread(parent, app_state, dataset_name_entry):
         show_info(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
         return
     else:
-        show_info(parent, "Info", "Clustering started. This may take a while, please wait!")
+        if not show_confirm_action_window(parent, "Info", "Clustering started. "
+                                                          "This may take a while, please wait!"):
+            # stop execution if closed with [Close]
+            return
 
     def thread_wrapper():
         current_thread = threading.current_thread()
@@ -278,7 +281,10 @@ def replace_labels_from_df(app_state, dataset_name, parent=None):
         show_info(parent, "Error", "Selected cluster dataset not valid! Perhaps you forgot to pick a dataset?")
         return
     else:
-        show_info(parent, "Info", "Replacement of syllables started. This may take a while, please wait!")
+        if not show_confirm_action_window(parent, "Info", "Replacement of syllables started. "
+                                                          "This may take a while, please wait!"):
+            # stop execution if closed with [Close]
+            return
 
     original_data_dir = app_state.data_dir
     original_song_files = app_state.song_files.copy() if app_state.song_files else []

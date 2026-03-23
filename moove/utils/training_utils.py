@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import QLabel, QApplication, QDialog, QPushButton, QVBoxLay
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from moove.qt_helpers import show_info
+from moove.qt_helpers import show_info, show_confirm_action_window
 
 
 def _torch_major_minor():
@@ -128,7 +128,8 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
     if num_segs <= 7:
         _hide_status(app_state.training_window)
-        show_info(parent, "Error", f"Not enough segments given (n = {num_segs}), need at least 7 to train a network!\n You might want to adjust the threshold.")
+        show_info(parent, "Error", f"Not enough segments given (n = {num_segs}), "
+                                   f"need at least 7 to train a network!\n You might want to adjust the threshold.")
         return
 
     if len(file_indices) >= 7:
@@ -137,7 +138,11 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
         train_files, temp_files = train_test_split(file_indices, test_size=0.3, random_state=42)
         val_files, test_files = train_test_split(temp_files, test_size=0.5, random_state=42)
-        show_info(parent, "Info", "Training of segmentation model started. This may take a while, please wait!")
+        if not show_confirm_action_window(parent, "Info", "Training of segmentation model started. "
+                                                          "This may take a while, please wait!"):
+            # stop execution if closed with [Close]
+            _hide_status(app_state.training_window)
+            return
         _show_status(app_state.training_window, "Training in Progress...")
 
         train_data = filter_data_by_files(features, train_files)
@@ -151,7 +156,11 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
         train_data, temp_data = train_test_split(features, test_size=0.3, random_state=42)
         val_data, test_data = train_test_split(temp_data, test_size=0.5, random_state=42)
-        show_info(parent, "Info", "Training of segmentation model started. This may take a while, please wait!")
+        if not show_confirm_action_window(parent, "Info", "Training of segmentation model started. "
+                                                          "This may take a while, please wait!"):
+            # stop execution if closed with [X]
+            _hide_status(app_state.training_window)
+            return
         _show_status(app_state.training_window, "Training in Progress...")
 
     train_data = train_data[:, 1:]
@@ -275,7 +284,7 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
             patience_counter += 1
 
         if patience_counter >= early_stopping_patience:
-            app_state.logger.info(f'Early stopping at epoch {epoch+1}')
+            app_state.logger.info(f'Early stopping at epoch {epoch + 1}')
             break
 
         app_state.logger.info(
@@ -373,7 +382,11 @@ def start_classification_training(parent, app_state, dataset_name, bird):
     if len(filenames) >= 7:
         train_files, temp_files = train_test_split(filenames, test_size=0.3, random_state=42)
         val_files, test_files = train_test_split(temp_files, test_size=0.5, random_state=42)
-        show_info(parent, "Info", "Training of classification model started. This may take a while, please wait!")
+        if not show_confirm_action_window(parent, "Info", "Training of classification model started. "
+                                                          "This may take a while, please wait!"):
+            # stop execution if closed with [Close]
+            _hide_status(app_state.training_window)
+            return
         _show_status(app_state.training_window, "Training in Progress...")
 
         df_train = df[df['file'].isin(train_files)]
@@ -399,7 +412,11 @@ def start_classification_training(parent, app_state, dataset_name, bird):
         val_data, test_data, val_labels, test_labels = train_test_split(
             temp_data, temp_labels, test_size=0.5, stratify=temp_labels, random_state=42)
         input_shape = train_data[0].shape
-        show_info(parent, "Info", "Training of classification model started. This may take a while, please wait!")
+        if not show_confirm_action_window(parent, "Info", "Training of classification model started. "
+                                                          "This may take a while, please wait!"):
+            # stop execution if closed with [Close]
+            _hide_status(app_state.training_window)
+            return
         _show_status(app_state.training_window, "Training in Progress...")
 
     train_data, train_labels = shuffle(train_data, train_labels, random_state=42)
