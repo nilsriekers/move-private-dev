@@ -73,6 +73,7 @@ class AppState:
         self.current_file_index = 0
         self.song_files = []
         self.current_batch_file = "batch.txt"
+        self.window_geometry = None
         self.original_x_range = None
         self.original_y_range_ax1 = None
         self.original_y_range_ax2 = None
@@ -188,6 +189,7 @@ class AppState:
                 'song_files': self.song_files,
                 'current_file_index': self.current_file_index,
                 'current_batch_file': self.current_batch_file,
+                'window_geometry': self.window_geometry,
                 'evfuncs_params': {key: value.get() for key, value in self.evfuncs_params.items()},
                 'mlseg_params': {key: value.get() for key, value in self.mlseg_params.items()},
                 'spec_params': {key: value.get() for key, value in self.spec_params.items()},
@@ -224,6 +226,7 @@ class AppState:
         self.song_files = state_dict.get('song_files')
         self.current_file_index = state_dict.get('current_file_index')
         self.current_batch_file = state_dict.get('current_batch_file', 'batch')
+        self.window_geometry = state_dict.get('window_geometry')
 
         for key, value in state_dict.get('evfuncs_params', {}).items():
             if key in self.evfuncs_params:

@@ -26,7 +26,7 @@ from PyQt6.QtWidgets import (
     QComboBox, QPushButton, QCheckBox, QRadioButton, QButtonGroup,
     QMessageBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QIcon, QPixmap, QPalette
 
 from moove.qt_helpers import QRangeSliderV, RadioAdapter, set_combo_items, invoke_in_main_thread, show_info
@@ -116,6 +116,30 @@ class MooveMainWindow(QMainWindow):
 
         plot_data(self.app_state)
         self.app_state.init_flag = True
+
+    def restore_last_window_geometry(self):
+        """Restore window position/size from app state if it is still on any screen."""
+        geom = self.app_state.window_geometry
+        if not isinstance(geom, dict):
+            return False
+
+        try:
+            x = int(geom.get("x"))
+            y = int(geom.get("y"))
+            width = int(geom.get("width"))
+            height = int(geom.get("height"))
+        except (TypeError, ValueError):
+            return False
+
+        if width <= 0 or height <= 0:
+            return False
+
+        target = QRect(x, y, width, height)
+        for screen in QApplication.screens():
+            if screen.availableGeometry().intersects(target):
+                self.setGeometry(target)
+                return True
+        return False
 
     # ------------------------------------------------------------------
     # Config
@@ -541,6 +565,13 @@ class MooveMainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def closeEvent(self, event):
         s = self.app_state
+        g = self.geometry()
+        s.window_geometry = {
+            "x": g.x(),
+            "y": g.y(),
+            "width": g.width(),
+            "height": g.height(),
+        }
         with s.thread_lock:
             active = len(s.active_threads)
         if active > 0:
@@ -591,7 +622,8 @@ def main():
                 pass
 
     window = MooveMainWindow()
-    window.resize(1200, 600)
+    if not window.restore_last_window_geometry():
+        window.resize(1200, 600)
     window.show()
     sys.exit(app.exec())
 
