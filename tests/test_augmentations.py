@@ -6,6 +6,7 @@ from moove.utils.training_utils import (
     frequency_mask,
     time_mask,
     dynamic_range_compression,
+    DEFAULT_AUGMENTATION_PARAMS,
 )
 
 
@@ -82,3 +83,36 @@ class TestAugmentSpectrogram:
             for _ in range(100)
         )
         assert unchanged_count > 50, "Augmentation should leave most samples unchanged"
+
+    def test_disabled_returns_unchanged(self, sample_spectrogram):
+        """When enabled=False, spectrogram is always returned unchanged."""
+        params = dict(DEFAULT_AUGMENTATION_PARAMS, enabled=False)
+        original = sample_spectrogram.copy()
+        for _ in range(20):
+            result = augment_spectrogram(original.copy(), aug_params=params)
+            np.testing.assert_array_equal(result, original)
+
+    def test_custom_probability(self, sample_spectrogram):
+        """probability=1.0 should always augment."""
+        params = dict(DEFAULT_AUGMENTATION_PARAMS, probability=1.0)
+        changed = 0
+        np.random.seed(42)
+        for _ in range(20):
+            result = augment_spectrogram(sample_spectrogram.copy(), aug_params=params)
+            if not np.array_equal(result, sample_spectrogram):
+                changed += 1
+        assert changed == 20
+
+    def test_custom_params_passed_through(self):
+        """Custom noise_level should produce correspondingly larger perturbations."""
+        spec = np.ones((32, 16), dtype=np.float32)
+        params = dict(DEFAULT_AUGMENTATION_PARAMS, probability=1.0, noise_level=10.0)
+        np.random.seed(0)
+        import random
+        random.seed(0)
+        # Force noise augmentation by seeding; run enough times to hit it
+        diffs = []
+        for _ in range(50):
+            result = augment_spectrogram(spec.copy(), aug_params=params)
+            diffs.append(np.abs(result - spec).max())
+        assert max(diffs) > 1.0, "High noise_level should produce large perturbations"

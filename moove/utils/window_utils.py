@@ -583,7 +583,50 @@ def open_training_window(parent, app_state):
 
     cls_down = QCheckBox("Downsampling")
     cls_down.setChecked(app_state.train_classification_params['downsampling'].get())
-    right.addWidget(cls_down, row, 0, 1, 2)
+    cls_down_row = QHBoxLayout()
+    cls_down_row.addWidget(cls_down)
+
+    def _open_augmentation_settings():
+        aug = app_state.augmentation_params
+        adlg = QDialog(dlg)
+        adlg.setWindowTitle("Data Augmentation Settings")
+        adlg.resize(360, 280)
+        _set_dlg_icon(adlg)
+        form = QGridLayout(adlg)
+        r = 0
+
+        aug_enabled = QCheckBox("Enable augmentation during training")
+        aug_enabled.setChecked(aug['enabled'].get())
+        form.addWidget(aug_enabled, r, 0, 1, 2)
+        r += 1
+
+        entries = {}
+        for lbl, key in [("Probability (0-1):", 'probability'),
+                         ("Noise Level:", 'noise_level'),
+                         ("Freq Mask Width:", 'freq_mask_width'),
+                         ("Time Mask Width:", 'time_mask_width'),
+                         ("Compression Factor:", 'compression_factor')]:
+            form.addWidget(QLabel(lbl), r, 0)
+            e = QLineEdit(aug[key].get())
+            entries[key] = e
+            form.addWidget(e, r, 1)
+            r += 1
+
+        def _apply():
+            aug['enabled'].set(aug_enabled.isChecked())
+            for k, e in entries.items():
+                aug[k].set(e.text())
+            adlg.accept()
+
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(_btn("OK", _apply))
+        btn_row.addWidget(_btn("Cancel", adlg.reject))
+        form.addLayout(btn_row, r, 0, 1, 2)
+        adlg.exec()
+
+    btn_aug = _btn("Augmentation...", _open_augmentation_settings)
+    cls_down_row.addWidget(btn_aug)
+    right.addLayout(cls_down_row, row, 0, 1, 2)
     row += 1
 
     cls_t_entries = {}

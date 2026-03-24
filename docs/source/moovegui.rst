@@ -559,6 +559,46 @@ In the drop-down menu *Select Training Dataset* you can choose between your prev
    | Early Stopping Patience | 5                 | Sets the number of epochs without improvement of the validation data after which the training is terminated automatically. Higher early stopping patience can lead to overfitting. |
    +-------------------------+-------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+Data Augmentation
+^^^^^^^^^^^^^^^^^
+
+To improve generalization and reduce overfitting, data augmentation can be applied during classification training.
+The **Augmentation...** button next to the *Downsampling* checkbox opens a configuration dialog where augmentation
+can be enabled or disabled and the individual parameters can be adjusted.
+
+When enabled, each training spectrogram has a configurable probability (default 20%) of being augmented per epoch.
+For each augmented sample, one of the following four transformations is randomly selected and applied:
+
+- **Additive Gaussian Noise** — Adds random noise drawn from a normal distribution scaled by the *Noise Level* parameter. This simulates microphone noise and recording variability.
+- **Frequency Masking** — Zeros out a contiguous band of frequency bins (width up to *Freq Mask Width*), inspired by SpecAugment (Park et al., 2019). This encourages the network to not rely on narrow frequency bands.
+- **Time Masking** — Zeros out a contiguous block of time frames (width up to *Time Mask Width*), analogous to frequency masking along the time axis.
+- **Dynamic Range Compression** — Applies logarithmic compression via :math:`\log(1 + c \cdot (e^x - 1))` with *Compression Factor* :math:`c`, reducing the dynamic range of the spectrogram.
+
+The augmentation parameters are described in the table below.
+
+.. table:: Table 10: Data augmentation parameters for classification training
+
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+   | **Parameter**       | **Default Value** | **Description**                                                                                                                                   |
+   +=====================+===================+===================================================================================================================================================+
+   | Enable Augmentation | True              | Enables or disables data augmentation during training.                                                                                            |
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+   | Probability         | 0.2               | Probability that a given spectrogram is augmented in each training epoch. A value of 0.2 means 20% of samples are augmented on average.           |
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+   | Noise Level         | 0.0001            | Standard deviation of the Gaussian noise added to the spectrogram.                                                                                |
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+   | Freq Mask Width     | 10 [bins]         | Maximum width (in frequency bins) of the frequency mask.                                                                                          |
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+   | Time Mask Width     | 10 [frames]       | Maximum width (in time frames) of the time mask.                                                                                                  |
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+   | Compression Factor  | 0.5               | Controls the strength of dynamic range compression. Lower values produce stronger compression.                                                    |
+   +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+
+Augmentation settings are persisted across sessions and are also saved in the trained model checkpoint, ensuring reproducibility.
+
+.. note::
+   Data augmentation is only applied to the **classification network** (CNN) which operates on 2D spectrograms. The segmentation network (ConvMLP) operates on raw 1D audio chunks where these spectral augmentations would not be meaningful.
+
 The *Start Training* button will train the classification network on the files from the selected training dataset. 
 The training window will indicate the status of the training at the bottom, starting with ‘\ *Checking files*\ ’ for usability, switching to ‘\ *Training in Progress’* once the training has started 
 and finally informing you when the training is finished and closing the *Training window*. The trained model can be found as a ``.pth`` file in the *trained_models* directory, 

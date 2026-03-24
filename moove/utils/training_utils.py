@@ -384,6 +384,8 @@ def start_classification_training(parent, app_state, dataset_name, bird):
     learning_rate = float(app_state.train_classification_params['learning_rate'].get())
     early_stopping_patience = int(app_state.train_classification_params['early_stopping_patience'].get())
 
+    aug_params = {k: v.get() for k, v in app_state.augmentation_params.items()}
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     with open(os.path.join(app_state.config['global_dir'], 'training_data', dataset_name), 'rb') as f:
@@ -520,6 +522,8 @@ def start_classification_training(parent, app_state, dataset_name, bird):
         model.train()
         return correct / total
 
+    metadata['augmentation'] = aug_params
+
     for epoch in range(epochs):
         QApplication.processEvents()
         if _training_cancel_requested(app_state):
@@ -536,7 +540,7 @@ def start_classification_training(parent, app_state, dataset_name, bird):
                 _hide_status(app_state.training_window)
                 show_info(parent, "Info", "Training aborted.")
                 return
-            augmented = [torch.from_numpy(augment_spectrogram(t.cpu().numpy())).float() for t in inp]
+            augmented = [torch.from_numpy(augment_spectrogram(t.cpu().numpy(), aug_params)).float() for t in inp]
             augmented = torch.stack(augmented).to(device)
             lab = lab.to(device)
             optimizer.zero_grad()
@@ -646,10 +650,36 @@ def get_predictions_and_targets(model, data_loader, device):
     return preds, targs
 
 
-def augment_spectrogram(spec):
+# Default augmentation parameters (used when no config is provided)
+DEFAULT_AUGMENTATION_PARAMS = {
+    'enabled': True,
+    'probability': 0.2,
+    'noise_level': 0.0001,
+    'freq_mask_width': 10,
+    'time_mask_width': 10,
+    'compression_factor': 0.5,
+}
+
+
+def augment_spectrogram(spec, aug_params=None):
     import random
-    if np.random.rand() < 0.2:
-        chosen = random.choice([add_noise_to_spectrogram, dynamic_range_compression, frequency_mask, time_mask])
+    if aug_params is None:
+        aug_params = DEFAULT_AUGMENTATION_PARAMS
+    if not aug_params.get('enabled', True):
+        return spec
+    prob = float(aug_params.get('probability', 0.2))
+    if np.random.rand() < prob:
+        noise_level = float(aug_params.get('noise_level', 0.0001))
+        freq_w = int(aug_params.get('freq_mask_width', 10))
+        time_w = int(aug_params.get('time_mask_width', 10))
+        comp = float(aug_params.get('compression_factor', 0.5))
+        augmentations = [
+            lambda s: add_noise_to_spectrogram(s, noise_level=noise_level),
+            lambda s: dynamic_range_compression(s, compression_factor=comp),
+            lambda s: frequency_mask(s, F=freq_w),
+            lambda s: time_mask(s, T=time_w),
+        ]
+        chosen = random.choice(augmentations)
         spec = chosen(spec)
     return spec
 

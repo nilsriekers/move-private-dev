@@ -137,6 +137,14 @@ class AppState:
             'downsampling': BoolVar(value=True),
             'qat': BoolVar(value=False),
         }
+        self.augmentation_params = {
+            'enabled': BoolVar(value=True),
+            'probability': Var(value="0.2"),
+            'noise_level': Var(value="0.0001"),
+            'freq_mask_width': Var(value="10"),
+            'time_mask_width': Var(value="10"),
+            'compression_factor': Var(value="0.5"),
+        }
         self.train_segmentation_params = {
             'hist_size': Var(value="3"),
             'chunk_size': Var(value="64"),
@@ -197,6 +205,7 @@ class AppState:
                 'umap_k_means_params': {key: value.get() for key, value in self.umap_k_means_params.items()},
                 'train_segmentation_params': {key: value.get() for key, value in self.train_segmentation_params.items()},
                 'train_classification_params': {key: value.get() for key, value in self.train_classification_params.items()},
+                'augmentation_params': {key: value.get() for key, value in self.augmentation_params.items()},
             }
 
             with open(filepath, 'w') as f:
@@ -247,6 +256,9 @@ class AppState:
         for key, value in state_dict.get('train_classification_params', {}).items():
             if key in self.train_classification_params:
                 self.train_classification_params[key].set(value)
+        for key, value in state_dict.get('augmentation_params', {}).items():
+            if key in self.augmentation_params:
+                self.augmentation_params[key].set(value)
 
     def set_canvas(self, canvas):
         self.canvas = canvas

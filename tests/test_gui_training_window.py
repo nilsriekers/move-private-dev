@@ -129,6 +129,85 @@ class TestTrainingClassificationPanel:
                    if b.text() == "Start Training"]
         assert len(buttons) == 2
 
+    def test_augmentation_button(self, training_dlg):
+        """Classification panel has an Augmentation... button."""
+        buttons = [b for b in training_dlg.findChildren(QPushButton)
+                   if b.text() == "Augmentation..."]
+        assert len(buttons) == 1
+
+
+class TestAugmentationDialog:
+    """Tests for the augmentation settings dialog interaction."""
+
+    def test_augmentation_dialog_opens_and_checkbox_toggles(self, training_dlg, gui_window, qtbot):
+        """Open augmentation dialog, toggle the enable checkbox, click Cancel."""
+        from PyQt6.QtCore import QTimer
+
+        btn = [b for b in training_dlg.findChildren(QPushButton)
+               if b.text() == "Augmentation..."][0]
+
+        def interact_with_dialog():
+            # Find the augmentation dialog (child of training_dlg)
+            dialogs = [w for w in training_dlg.findChildren(QDialog)]
+            assert len(dialogs) >= 1, "Augmentation dialog not found"
+            adlg = dialogs[-1]
+            assert adlg.windowTitle() == "Data Augmentation Settings"
+
+            # Find the Enable checkbox
+            cbs = [cb for cb in adlg.findChildren(QCheckBox)
+                   if "enable" in cb.text().lower() or "augmentation" in cb.text().lower()]
+            assert len(cbs) == 1
+            enable_cb = cbs[0]
+
+            # Toggle checkbox
+            original = enable_cb.isChecked()
+            enable_cb.setChecked(not original)
+            assert enable_cb.isChecked() != original
+
+            # Toggle back
+            enable_cb.setChecked(original)
+            assert enable_cb.isChecked() == original
+
+            # Close via Cancel
+            cancel_btns = [b for b in adlg.findChildren(QPushButton)
+                           if b.text() == "Cancel"]
+            assert len(cancel_btns) == 1
+            cancel_btns[0].click()
+
+        QTimer.singleShot(200, interact_with_dialog)
+        btn.click()
+
+    def test_augmentation_dialog_apply_saves_params(self, training_dlg, gui_window, qtbot):
+        """Open dialog, change params, click OK → params saved to app_state."""
+        from PyQt6.QtCore import QTimer
+
+        btn = [b for b in training_dlg.findChildren(QPushButton)
+               if b.text() == "Augmentation..."][0]
+        app_state = gui_window.app_state
+
+        def interact_with_dialog():
+            dialogs = [w for w in training_dlg.findChildren(QDialog)]
+            adlg = dialogs[-1]
+
+            # Uncheck Enable
+            cbs = [cb for cb in adlg.findChildren(QCheckBox)]
+            enable_cb = cbs[0]
+            enable_cb.setChecked(False)
+
+            # Click OK
+            ok_btns = [b for b in adlg.findChildren(QPushButton)
+                       if b.text() == "OK"]
+            ok_btns[0].click()
+
+        QTimer.singleShot(200, interact_with_dialog)
+        btn.click()
+
+        # After OK, the app_state should reflect the change
+        assert app_state.augmentation_params['enabled'].get() is False
+
+        # Restore default
+        app_state.augmentation_params['enabled'].set(True)
+
 
 class TestTrainingStatusWidgets:
     def test_status_label_hidden(self, training_dlg):

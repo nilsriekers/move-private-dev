@@ -85,13 +85,30 @@ if not os.path.exists(target_WN_dir):
 
 
 def _resolve_icon_path():
-    """Return preferred icon path (ICO first, then PNG fallback)."""
+    """Return preferred icon path, platform-aware.
+
+    macOS: .icns or high-res PNG (Retina).
+    Windows: .ico first.
+    Fallback: any available PNG.
+    """
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    candidates = [
-        os.path.normpath(os.path.join(pkg_dir, "..", "assets", "logo_128_white_bg_scaled.ico")),
-        os.path.join(pkg_dir, "templates", "logo_128_white_bg_small.png"),
-        os.path.join(pkg_dir, "templates", "logo.png"),
-    ]
+    assets = os.path.normpath(os.path.join(pkg_dir, "..", "assets"))
+    templates = os.path.join(pkg_dir, "templates")
+
+    if sys.platform == "darwin":
+        candidates = [
+            os.path.join(assets, "logo_128_white_bg.icns"),
+            os.path.join(assets, "logo_white_bg.png"),
+            os.path.join(assets, "logo_128_white_bg.png"),
+            os.path.join(templates, "logo.png"),
+        ]
+    else:
+        candidates = [
+            os.path.join(assets, "logo_128_white_bg_scaled.ico"),
+            os.path.join(assets, "logo_128_white_bg.png"),
+            os.path.join(templates, "logo_128_white_bg_small.png"),
+            os.path.join(templates, "logo.png"),
+        ]
     for path in candidates:
         if os.path.exists(path):
             return path
