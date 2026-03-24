@@ -18,7 +18,7 @@ you can set parameters for the MooveGUI. It is recommended to first start and lo
 The main window of the GUI is described in more detail in the section *Main window* below.
 
 .. figure:: _static/images/image27.png
-   :alt: A screenshot of a computer program AI-generated content may be incorrect.
+   :alt: A screenshot of a computer program
    :width: 4.58397in
    :height: 3.19836in
 
@@ -61,7 +61,7 @@ adjust the visual parameters of your spectrogram. The minimum and maximum range 
 manually the current slider settings will be saved when closing the GUI.
 
 .. figure:: _static/images/image28.png
-   :alt: Ein Bild, das Text, Screenshot, Display, Software enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Screenshot, Display, Software enthält.
    :width: 6.26806in
    :height: 3.69792in
 
@@ -153,7 +153,7 @@ Choosing a specific batch file in the menu will only feed files from this batch 
 You can also perform segmentation solely on the *Current File*.
 
 .. figure:: _static/images/image34.png
-   :alt: Ein Bild, das Text, Screenshot, Zahl, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Screenshot, Zahl, Schrift enthält.
    :width: 6in
    :height: 5.02083in
 
@@ -215,7 +215,7 @@ By that, you can train the network on more and more hand-corrected segmented fil
 in the GUI main window to open the *Training window*.
 
 .. figure:: _static/images/image37.png
-   :alt: Ein Bild, das Text, Screenshot, Zahl, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Screenshot, Zahl, Schrift enthält.
    :width: 5.85525in
    :height: 5.45499in
 
@@ -403,7 +403,7 @@ Cluster Syllables
 Once the cluster dataset is created, the dimensionality reduction using UMAP can be started. For that, the created dataset can be selected in the lower part of the *Cluster window* (green box).
 
 .. figure:: _static/images/image40.png
-   :alt: Ein Bild, das Text, Screenshot, Zahl, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Screenshot, Zahl, Schrift enthält.
    :width: 4.1875in
    :height: 6.21875in
 
@@ -640,25 +640,25 @@ Its content is generated from all saved classification models in the *trained_mo
 at the bottom of the *Relabel* window. Once all labels are replaced, you will be informed and the *Relabel window* will be closed.
 
 .. figure:: _static/images/image45.png
-   :alt: Ein Bild, das Text, Screenshot, Schrift, Display enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Screenshot, Schrift, Display enthält.
    :width: 2.84999in
    :height: 2.21193in
 
    Relabel data using the classification network
 
-.. |A screenshot of a computer error message AI-generated content may be incorrect.| image:: _static/images/image33.png
+.. |A screenshot of a computer error message| image:: _static/images/image33.png
    :width: 2.80247in
    :height: 1.61481in
-.. |Ein Bild, das Text, Elektronik, Screenshot, Display enthält. KI-generierte Inhalte können fehlerhaft sein.| image:: _static/images/image39.png
+.. |Ein Bild, das Text, Elektronik, Screenshot, Display enthält.| image:: _static/images/image39.png
    :width: 3.09734in
    :height: 1.68812in
-.. |Ein Bild, das Text, Screenshot, Display, Diagramm enthält. KI-generierte Inhalte können fehlerhaft sein.| image:: _static/images/image36.png
+.. |Ein Bild, das Text, Screenshot, Display, Diagramm enthält.| image:: _static/images/image36.png
    :width: 2.19167in
    :height: 0.33472in
-.. |Ein Bild, das Text, Screenshot, Display, Software enthält. KI-generierte Inhalte können fehlerhaft sein.| image:: _static/images/image30.png
+.. |Ein Bild, das Text, Screenshot, Display, Software enthält.| image:: _static/images/image30.png
    :width: 6.25278in
    :height: 0.625in
-.. |Ein Bild, das Text, Screenshot, Zahl, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.| image:: _static/images/image40.png
+.. |Ein Bild, das Text, Screenshot, Zahl, Schrift enthält.| image:: _static/images/image40.png
    :width: 4.1875in
    :height: 6.21875in
 .. |image12| image:: _static/images/image26.png

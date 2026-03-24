@@ -216,8 +216,16 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
 
     mean = X_train_tensor.mean()
     std = X_train_tensor.std()
+
     metadata['mean'] = mean.item()
     metadata['std'] = std.item()
+    metadata['hyperparameters'] = {
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'learning_rate': learning_rate,
+        'early_stopping_patience': early_stopping_patience,
+        'downsampling': downsampling,
+    }
 
     X_train_tensor = (X_train_tensor - mean) / std
     X_val_tensor = (X_val_tensor - mean) / std
@@ -523,6 +531,13 @@ def start_classification_training(parent, app_state, dataset_name, bird):
         return correct / total
 
     metadata['augmentation'] = aug_params
+    metadata['hyperparameters'] = {
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'learning_rate': learning_rate,
+        'early_stopping_patience': early_stopping_patience,
+        'downsampling': downsampling,
+    }
 
     for epoch in range(epochs):
         QApplication.processEvents()

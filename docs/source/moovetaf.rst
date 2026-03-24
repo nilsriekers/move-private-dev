@@ -5,7 +5,7 @@ MooveTaf
 
 You can start MooveTaf directly from the terminal/ Windows PowerShell by typing **moovetaf.exe**.
 
-|A screen shot of a computer AI-generated content may be incorrect.|
+|A screen shot of a computer|
 
 .. note::
    While recording, we strongly recommend assigning **high priority** to the running python program executing MooveTaf, 
@@ -20,7 +20,7 @@ pressing **Enter**. If one device offers input and output, the same number can b
 If you can’t find your desired devices in the list, check out section **Installation** for a possible solution.
 
 .. figure:: _static/images/image20.png
-   :alt: A screenshot of a computer AI-generated content may be incorrect.
+   :alt: A screenshot of a computer
    :width: 6.25094in
    :height: 3.59593in
 
@@ -40,7 +40,7 @@ Note that, on Linux and MacOS (and sometimes Windows) the ``.moove`` folder is h
 while in your user folder, on Linux it can be done using < Ctrl + H >. If you still can’t find it, search for “how to unhide folders”.
 
 .. figure:: _static/images/image21.png
-   :alt: A screenshot of a computer AI-generated content may be incorrect.
+   :alt: A screenshot of a computer
    :width: 6.26806in
    :height: 3.88125in
 
@@ -57,7 +57,7 @@ directory, all config settings have to be made in the original ``config`` file i
    ``playbacks`` when starting to record. Other folders have to be copied/ created manually (pay attention to spelling).
 
 .. figure:: _static/images/image22.png
-   :alt: Ein Bild, das Screenshot, Text, Software, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Screenshot, Text, Software, Schrift enthält.
    :width: 6.26806in
    :height: 1.82361in
 
@@ -68,7 +68,7 @@ In case one folder doesn’t exist and the structure changes, your data cannot b
 and experiment folder are set in the config (see section *Setting the config*).
 
 .. figure:: _static/images/image23.png
-   :alt: Ein Bild, das Text, Diagramm, Reihe, Schrift enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Diagramm, Reihe, Schrift enthält.
    :width: 5.10961in
    :height: 3.15884in
 
@@ -78,7 +78,7 @@ A **batch.txt** file will be automatically created once the recording starts. It
 You can also create and modify these files using any text editor.
 
 .. figure:: _static/images/image24.png
-   :alt: Ein Bild, das Text, Elektronik, Screenshot, Display enthält. KI-generierte Inhalte können fehlerhaft sein.
+   :alt: Ein Bild, das Text, Elektronik, Screenshot, Display enthält.
    :width: 3.82973in
    :height: 1.59202in
 
@@ -99,7 +99,7 @@ It is an *.ini* file that can be opened and edited with any text editor program.
 The line **global_dir** lets you set your folder saving destination (pink box).
 
 .. figure:: _static/images/image25.png
-   :alt: A screen shot of a computer program AI-generated content may be incorrect.
+   :alt: A screen shot of a computer program
    :width: 3.6902in
    :height: 8.17454in
 
@@ -218,6 +218,6 @@ If you are not familiar with regular expressions in python, try asking any AI or
 | min_silent_duration            | 0.005 [seconds]                 | Specifies the minimum silence between two syllables to be counted as separate units.                                                                                                          |
 +--------------------------------+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. |A screen shot of a computer AI-generated content may be incorrect.| image:: _static/images/image19.png
+.. |A screen shot of a computer| image:: _static/images/image19.png
    :width: 6.26806in
    :height: 1.27847in
