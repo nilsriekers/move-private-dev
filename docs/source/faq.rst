@@ -156,14 +156,33 @@ instead of your home directory.
    Do not delete the ``.moove`` folder that was created in your home directory initially, as the new saving directory
    has to be set here in the initial ``config`` file. Any changes to the ``config`` have to be made within the original directory.
 
+My recording seems to stop in the midde of a syllable/ bout
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you ever see a syllable or bout being cut off in the middle, 
+it is very likely that your threshold is not set correctly.
+Whether a file is terminated and saved depends on threshold crossing of the sound
+source rather than a syllable still being detected (onsets can be detected even when the threshold is not triggered).
+
+You can adjust the value in the ``config.ini`` file in your ``.moove`` folder.
+We really recommend taking some time to adjust the threshold correctly to your setup, 
+as it can strongly affect the quality of your recordings.
+
+
 Why are there big red "stripes" in the middle of my recordings?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Moove is a pretty computation-heavy program. While you record with MooveTaf, we strongly recommend not 
 using the computer for anything else. If you want to do so, make sure that your computer meets
 some requirements, i.e. having at least 32GB RAM and/or a decent CPU and/or a decent GPU. With this,
-we were easily able to do for example electrophysiological recordings while recording song, just keep in 
+we were able to do for example electrophysiological recordings while recording song, just keep in 
 mind that the performance strongly depends on your setup.
+
+.. figure:: _static/images/image57.png
+   :alt: Example of blips
+   :width: 3.64977in
+
+   Figure: Example of audio artifacts.
 
 When doing things in parallel that are not as computation-heavy and don't require fast processing,
 make sure that you set the processing priority for MooveTaf as high as possible (as described in *MooveTaf*).

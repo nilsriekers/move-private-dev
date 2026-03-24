@@ -77,7 +77,7 @@ In addition, the most-right drop-down menu shows the current batch file you’re
 
    Navigation bar in the main window
 
-The bottom row of the GUI contains multiple functional buttons to work on the current file. The **update** button ‘⟳‘ (①) refreshes the GUI applying any changes performed on data folders and .rec files 
+The bottom row of the GUI contains multiple functional buttons to work on the current file. The **update** button ‘\ **⟳**\ ’ (①) refreshes the GUI applying any changes performed on data folders and .rec files 
 and updates each batch file. In case you are recording with MooveTaf on the same computer while working in the GUI, you can also press update to load your recently recorded files. 
 The ‘\ **Previous**\ ’ and ‘\ **Next**\ ’ buttons (②) enable switching between song files of one day. In case the file you are loading next contains a lot of data, 
 the loading process might take a few seconds. The arrow buttons ‘\ **<**\ ’ and ‘\ **>**\ ’ (③) let you move within the song file along the x-axis, which is especially helpful when zoomed in.
@@ -88,8 +88,12 @@ the loading process might take a few seconds. The arrow buttons ‘\ **<**\ ’ 
    Bottom row of the main window containing functional buttons
 
 **Zooming** can be performed on either the spectrogram or the amplitude trace plot by dragging your cursor and will be signaled by a red box. 
-A rather unspecific zoom into the data can be performed using the ‘\ **Zoom**\ ’ button, while ‘\ **Unzoom**\ ’ moves back to default, 
-showing the whole file ( ④). Note that ‘Zoom’ reduces the x-axis range by 30%, staying around the center of your current axis.
+A rather unspecific zoom into the data can be performed using the ‘\ **Zoom**\ ’ button and ‘\ **Unzoom**\ ’ reverts that in the same amount,
+while ‘\ **🏠**\ ’ moves back to default, showing the whole file (④). 
+
+.. note::
+    **Zoom** reduces the x-axis range by 30% and **Unzoom** increases it by the same amount, 
+    staying around the center of your current axis.
 
 .. figure:: _static/images/image31.png
    :width: 6.25532in
@@ -97,7 +101,7 @@ showing the whole file ( ④). Note that ‘Zoom’ reduces the x-axis range by 
    Zooming
 
 Once you zoomed in, you can ‘\ **Crop**\ ’ (⑤) your file to the currently shown x-axis range. Before cropping up the area, you will be asked to confirm the operation, as this will **delete** any excess data. 
-The file names will not be changed but the title in the .rec file will show the date when the file was changed.
+The file names will not be changed but the title in the ``.rec`` file will display the date when the file was changed.
 
 In case you want to delete the current file (for example noise files), the ‘\ **Delete**\ ’ button (⑥) will give you the option to either remove its entry from the current batch (blue box) or remove its .wav-file, 
 .rec-file and .not.mat-file from the current folder (red box). **Note that this option will remove the file completely from your disk!**
@@ -162,6 +166,8 @@ You can also perform segmentation solely on the *Current File*.
 For the segmentation process, you can define five parameters that are explained in the table below. Each parameter has a given default value. 
 Pressing the button ‘\ **Segment**\ ’ will start the segmentation process with the given parameters on the selected file(s), indicated by a green progress bar 
 at the bottom of the window. This will determine syllable onsets and offsets in the raw audio data.
+Closing the *Resegmentation window* while the process is still running will open a window asking whether you want to stop segmenting or not. Pressing **Yes** 
+will stop the process and the syllable onsets and offsets determined by the algorithm up to this point will be saved.
 
 .. table:: Resegmentation parameters for using evfuncs
 
@@ -179,9 +185,12 @@ at the bottom of the window. This will determine syllable onsets and offsets in 
    | Smoothing Window        | 2 [milliseconds]     | Defines the size of the time window for smoothing the signal.                      |
    +-------------------------+----------------------+------------------------------------------------------------------------------------+
 
-Once the process is done, you will be informed, and the *Resegmentation window* will close. 
+Once the process is done, you will be informed. 
 The syllable onsets and offsets assigned by the algorithm will become visible in the amplitude trace of the main window. 
-Each segment will be labeled **‘x’** by default, visible in the middle plot. Furthermore, onset and offset times will be added to the .not.mat-file of each song file the segmentation has been performed on.
+Each segment will be labeled ‘**x**’ by default, visible in the middle plot. Furthermore, onset and offset times will be added to the .not.mat-file 
+of each song file the segmentation has been performed on. If you want to visibly move your segments **without changing the onset and offset times in the .not.mat-file**, 
+you can use the option **Set Threshold Manually** in the *Resegmentation window* (green box). Setting a new threshold and pressing the button will move the segments 
+to the positions determined by the new threshold, but the original onset and offset times will be kept in the ``.not.mat`` file.
 
 .. figure:: _static/images/image35.png
    :width: 6.2679in
@@ -202,16 +211,20 @@ If the **New Segment** option is selected, a syllable segment can be added with 
 This segment is then temporarily labelled with the placeholder value ‘x’. Selecting the **Delete Segment** option allows you to delete an existing syllable segment in the amplitude 
 diagram by clicking on it. You can also click on the corresponding label to delete it. The **Move Segment** option allows the user to left-click on the marker of an existing onset or 
 offset point in the amplitude diagram. The marker will be highlighted in red. A right-click on the desired position will move it to this new position. You can mark files for which 
-he has manually verified the segmentation using the **Segmented** checkbox in the upper right corner of the main window (see *Main window* ⑤). This will in the following steps give you the option 
-to specifically train a network based on previous segmentation. This information will be saved in the corresponding ``.rec`` file of the current song file.
+you have manually verified the segmentation using the **Segmented** checkbox in the upper right corner of the main window (see *Main window* ⑤). 
+This will in the following steps give you the option to specifically train a network based on previous segmentation. 
+This information will be saved in the corresponding ``.rec`` file of the current song file.
 
 Create a Segmentation Training Dataset
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As soon as enough bouts have been segmented, the segmentation network can be trained. Training the network is recommended to be an **iterative process**. 
-Therefore, few bouts are first segmented manually, and the segmentation network is trained. The trained network can then be used to segment a bout that has not been segmented yet. 
-Even if the segmentation of this bout is not yet perfect, the corresponding bout can then be corrected more quickly by hand and included in the set of bouts for the training dataset. 
-By that, you can train the network on more and more hand-corrected segmented files. To create a training dataset out of your segmented files, press the ‘\ **Training’** button (see *Main window* ⑩) 
+Therefore, few bouts are first segmented manually, and the segmentation network is trained. The trained network can then be used to segment 
+a bout that has not been segmented yet. 
+Even if the segmentation of this bout is not yet perfect, the corresponding bout can then be corrected more quickly by hand 
+and included in the set of bouts for the training dataset. 
+By that, you can train the network on more and more hand-corrected segmented files. 
+To create a training dataset out of your segmented files, press the ‘\ **Training’** button (see *Main window* ⑩) 
 in the GUI main window to open the *Training window*.
 
 .. figure:: _static/images/image37.png
@@ -226,8 +239,8 @@ The left part of the window is dedicated to the **segmentation network**, with t
 With the upper four buttons you can choose which files to feed into the dataset. The options *Current Day*, *Current Experiment* and *Current Bird* will use all files in the respective subdirectories. 
 For every selection, the respective **batch files** will become visible in the drop-down menu on the right (blue box). By default, *All files* from the respective directory will be used. 
 Choosing a specific batch file in the menu will only feed files from this batch into the dataset. With that, you have the option to load specific files from multiple days or experiments. 
-The option *Use Segmented Files Only* creates a dataset only containing the files in which the *segmentation checkmark* has been ticked (see above). This gives you the option to only feed 
-files into the dataset that have already been manually checked or corrected. 
+The option *Use Segmented Files Only* creates a dataset only containing the files in which the *segmentation checkmark* has been ticked (see above). 
+This gives you the option to only feed files into the dataset that have already been manually checked or corrected. 
 
 .. note::
       You must assign a name to the dataset in the *Training Dataset Name* field, the suffix *\_seg* will be added automatically. You cannot create empty datasets.
@@ -240,7 +253,10 @@ If the parameter is not selected, the sequences are created without overlapping 
 if you feed **at least** **7** segmented files into the network.
 
 Pressing the button **Create Training Dataset** will start the process, 
-indicated as ‘\ *Looking for Segments*\ ’ and followed by a green progress bar at the bottom of the window. Once the dataset is created you will be informed, and the *Training window* will close. 
+indicated as ‘\ *Looking for Segments*\ ’ and followed by a green progress bar at the bottom of the window. Closing the *Resegmentation window* while the process is 
+still running will open a window asking whether you want to stop creating the dataset or not. Pressing **Yes** will stop the process and the 
+training dataset will not be created.
+Once the dataset is created you will be informed. 
 With that, the content of the dataset, *Chunk Size* and *Hist Size* will be saved to a ``.pkl`` file in the folder *training_data*.
 
 Train the Segmentation Network
@@ -279,7 +295,9 @@ The parameters that can be set to train the network are explained in the table b
 The *Start Training* button will train the segmentation network on the files from the selected training dataset. 
 The training window will indicate the status of the training at the bottom, starting with ‘\ *Checking files*\ ’ for usability, 
 switching to ‘\ *Training in Progress’* once you confirmed the start by pressing ‘\ *Ok*\ ’ and finally informing you when the 
-training is finished, closing the *Training window*. The training progress can be observed in the terminal, where the current 
+training is finished. Closing the *Resegmentation window* while the process is still running will open 
+a window asking whether you want to stop training or not. Pressing **Yes** will stop the process and the network will not be trained.
+The training progress can be observed in the terminal, where the current 
 iteration of training (epoch) and the current accuracy of the network is shown.
 
 .. note::
@@ -331,8 +349,9 @@ you can select the desired trained segmentation model. Its content is generated 
    Resegment using the training segmentation network
 
 The resegmentation parameters can be adjusted below and are explained in the following table. Eventually, pressing the **Segment** button at the bottom of the window 
-will start the resegmentation process of the selected files, indicated by a green progress bar at the bottom of the window. Once all files are resegmented, you will be informed 
-and the *Resegmentation window* will close.
+will start the resegmentation process of the selected files, indicated by a green progress bar at the bottom of the window. Once all files are resegmented, you will be informed.
+Closing the *Resegmentation window* while the process is still running will open a window asking whether you want to stop segmenting or not. 
+Pressing **Yes** will stop the process and the syllable onsets and offsets determined by the algorithm up to this point will be saved.
 
 .. table:: Parameters for resegmenting using a trained network
 
@@ -394,8 +413,10 @@ The following adjustable parameters will be used in the spectrogram calculation 
    | Frequency Cutoffs | 0,22050 [Hertz]   | Defines the lower and upper cutoff frequency for filtering the spectrogram.                                                                                                                   |
    +-------------------+-------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Pressing the button Create Cluster Dataset will start the process, indicated by a green process bar at the bottom of the *Cluster window*. Once the clustering is done, you will be informed, 
-and the *Cluster window* will close. The dataset will be saved as ``.pkl`` file in the *cluster_data* folder.
+Pressing the button Create Cluster Dataset will start the process, indicated by a green process bar at the bottom of the *Cluster window*. 
+Once the clustering is done, you will be informed. The dataset will be saved as ``.pkl`` file in the *cluster_data* folder.
+Closing the *Cluster window* while the process is still running will open a window asking whether you want to stop creating the dataset or not. 
+Pressing **Yes** will stop the process and the cluster dataset will not be created.
 
 Cluster Syllables
 ~~~~~~~~~~~~~~~~~~
@@ -409,8 +430,10 @@ Once the cluster dataset is created, the dimensionality reduction using UMAP can
 
    Clustering of syllables
 
-Below, the input parameters for the UMAP algorithm and the following k-Means algorithm can be set (Table 7). The button **Cluster Syllables** will start the process, indicated by the ‘\ *Running*\ ’ 
-label at the bottom of the window.
+Below, the input parameters for the UMAP algorithm and the following k-Means algorithm can be set (Table 7). 
+The button **Cluster Syllables** will start the process, indicated by the ‘\ *Running*\ ’ label at the bottom of the window.
+Closing the *Cluster window* while the process is still running will open a window asking whether you want to stop clustering or not. 
+Pressing **Yes** will stop the process and the syllables will not be clustered.
 
 .. table:: Parameters for clustering syllables
 
@@ -424,8 +447,9 @@ label at the bottom of the window.
    | N Syllables   | 10                | Defines the number of syllable clusters to be formed for the k-Means algorithm. Re-adjust if the number of clusters created is not the yellow from the egg. |
    +---------------+-------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Once the clustering is completed, the results will be saved to the ``.pkl`` file, together with a same-named ``.png`` file of the 2D UMAP space containing the syllable clusters. 
-An interactive version of the UMAP clustering can be opened with the button **Open Dash GUI** (purple box), which will start in a separate thread in your browser.
+Once the clustering is completed, the results will be saved to the ``.pkl`` file, together with a same-named ``.png`` file of the 2D UMAP space 
+containing the syllable clusters. An interactive version of the UMAP clustering can be opened with the button 
+**Open Dash GUI** (purple box), which will start in a separate thread in your browser.
 
 .. figure:: _static/images/image41.png
    :width: 5.83074in
@@ -454,19 +478,27 @@ you draw a free form.
 
    Options in the Dash GUI
 
-Once you selected points, you can relabel these points directly by typing the new label into the *Label for selected points* field at the left bottom of the Dash window (orange box). 
+Once you selected points, you can relabel these points directly by typing the new label into the *Label for selected points* field at the left bottom of the 
+Dash window (orange box). 
 Pressing the **Apply** button will change the label of the selected points and depending on the letter distance to the other syllables, the color space is adjusted, 
-possibly leading to a different color mapping than before. Furthermore, you can change all dots from one label at once, by typing the current label of the cluster in the *Change all labels from* filed, 
-and the new desired label in the *to:* field next to it. Pressing **Change All** will change the label of this cluster. In the lower right corner, the buttons **Increase Point Size** and **Decrease Point Size** 
-give you the option to change the dot size for better visibility. When you applied your desired changes, press the **Save** button in the middle bottom part of the Dash GUI to overwrite your previous cluster data. 
-Saving the data will be indicated by a message showing up in the MooveGUI. Once you’re done, press the **Close Dash GUI** button in the *Cluster window* of the MooveGUI. This will shut down the Dash server and you 
-can then close the browser window. 
+possibly leading to a different color mapping than before. Furthermore, you can change all dots from one label at once, by typing the current label of the cluster 
+in the *Change all labels from* filed, 
+and the new desired label in the *to:* field next to it. Pressing **Change All** will change the label of this cluster. In the lower right corner, the buttons 
+**Increase Point Size** and **Decrease Point Size** 
+give you the option to change the dot size for better visibility. When you applied your desired changes, press the **Save** button in the middle bottom part of the 
+Dash GUI to overwrite your previous cluster data. 
+Saving the data will be indicated by a message showing up in the MooveGUI. Once you’re done, press the **Close Dash GUI** button in the *Cluster window* of the MooveGUI. 
+This will shut down the Dash server and you can then close the browser window. 
 
 .. note::
    The Dash GUI **must be closed** using the **Close Dash GUI** button before it can be reopened, as the server will not be available otherwise.
 
-Finally, you can apply your newly acquired syllable labels to your data by pressing the button **Replace Labels** in the *Cluster window*. This will replace all previous placeholder labels ‘x’ (or other labels) 
-in the ``.not.mat`` files that have been fed into the dataset (as defined in *Create a Cluster Training Dataset*) and the new labels will appear in the GUI.
+Finally, you can apply your newly acquired syllable labels to your data by pressing the button **Replace Labels** in the *Cluster window*. 
+This will replace all previous placeholder labels ‘x’ (or other labels) 
+in the ``.not.mat`` files that have been fed into the dataset (as defined in *Create a Cluster Training Dataset*) 
+and the new labels will appear in the GUI. Closing the *Cluster window* while the process is still running will open 
+a window asking whether you want to stop replacing labels or not. Pressing **Yes** will stop the process and the labels will be 
+replaced up to this point only.
 
 Syllable classification
 -----------------------
@@ -524,8 +556,12 @@ as described in the table below (Table 8). You cannot create empty datasets.
    | Frequency Cutoffs   | 0,22050 [Hertz]   | Defines the lower and upper cutoff frequency for filtering the spectrogram.                                                                                                                   |
    +---------------------+-------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Pressing the button **Create Training Dataset** will start the process, indicated as ‘\ *Looking for Syllables’* and followed by a green progress bar at the bottom of the window. 
-Once the dataset is created you will be informed, and the *Training window* will close. With that, the content of the dataset will be saved to a ``.pkl`` file in the *training_data* folder.
+Pressing the button **Create Training Dataset** will start the process, indicated as ‘\ *Looking for Syllables’* and followed by a 
+green progress bar at the bottom of the window. 
+Once the dataset is created you will be informed. With that, the content of the dataset will 
+be saved to a ``.pkl`` file in the *training_data* folder. 
+Closing the *Training window* while the process is still running will open a window asking whether you want to stop creating the dataset or not. 
+Pressing **Yes** will stop the process and the training dataset will not be created.
 
 Training the Classification Network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -538,7 +574,8 @@ Once a classification training dataset is created, the classification network ca
 
    Training the classification network
 
-In the drop-down menu *Select Training Dataset* you can choose between your previously created training datasets. The parameters that can be set to train the network are explained in the table below.
+In the drop-down menu *Select Training Dataset* you can choose between your previously created training datasets. 
+The parameters that can be set to train the network are explained in the table below.
 
 .. note::
       We do not recommend downsampling if you’re especially interested in ‘repeats’ or if your dataset contains syllables that only occur very rarely.
@@ -604,15 +641,21 @@ The augmentation parameters are described in the table below.
 Augmentation settings are persisted across sessions and are also saved in the trained model checkpoint, ensuring reproducibility.
 
 .. note::
-   Data augmentation is only applied to the **classification network** (CNN) which operates on 2D spectrograms. The segmentation network (ConvMLP) operates on raw 1D audio chunks where these spectral augmentations would not be meaningful.
+   Data augmentation is only applied to the **classification network** (CNN) which operates on 2D spectrograms. The segmentation network (ConvMLP) operates 
+   on raw 1D audio chunks where these spectral augmentations would not be meaningful.
 
 The *Start Training* button will train the classification network on the files from the selected training dataset. 
-The training window will indicate the status of the training at the bottom, starting with ‘\ *Checking files*\ ’ for usability, switching to ‘\ *Training in Progress’* once the training has started 
-and finally informing you when the training is finished and closing the *Training window*. The trained model can be found as a ``.pth`` file in the *trained_models* directory, 
-together with a ``.svg`` file containing the classification matrix. This matrix shows the performance of the network as the accuracy of the predictions for each type of syllable on the test subset.
+The *Training window* will indicate the status of the training at the bottom, starting with ‘\ *Checking files*\ ’ for usability, 
+switching to ‘\ *Training in Progress’* once the training has started 
+and finally informing you when the training is finished. Closing the *Training window* while the process is still running will open a window asking whether 
+you want to stop training or not. Pressing **Yes** will stop the process and the trained model will not be saved.
 
 .. note::
    The start of the training requires confirmation via pressing the **Ok** button. 
+
+The trained model can be found as a ``.pth`` file in the *trained_models* directory, 
+together with a ``.svg`` file containing the classification matrix. This matrix shows the performance of the network as the accuracy of 
+the predictions for each type of syllable on the test subset.
 
 .. figure:: _static/images/image44.jpg
    :width: 4.12631in
@@ -621,8 +664,10 @@ together with a ``.svg`` file containing the classification matrix. This matrix 
    Example classification matrix
 
 To train a network, at least **6 syllables per syllable type** must be defined in the given files. Furthermore, if the dataset consists of at least **7 classified files**, 
-the data will be split between files to form the training data, validation data and test data set. Splitting data by files prevents data leakage and provides more reliable accuracy results. 
-However, you can still train a network on less than 7 files, for example if you have very long song files containing multiple bouts and syllables. The GUI will ask you whether you want to continue with only a few files.
+the data will be split between files to form the training data, validation data and test data set. 
+Splitting data by files prevents data leakage and provides more reliable accuracy results. 
+However, you can still train a network on less than 7 files, for example if you have very long song files containing multiple bouts and syllables. 
+The GUI will ask you whether you want to continue with only a few files.
 
 .. figure:: _static/images/image39.png
    :width: 3.36806in
@@ -630,21 +675,27 @@ However, you can still train a network on less than 7 files, for example if you 
    Small dataset warning
 
 Pressing **Continue with few files** will train a network on these files (if they contain at least 6 syllables per syllable type) by not splitting between files. 
-Therefore, training data, validation data and test data sets will contain syllables from the same file. This is in general not recommended and accuracy values can be less reliable. 
-Pressing **Cancel** will bring you back to the *training window.*
+Therefore, training data, validation data and test data sets will contain syllables from the same file. This is in general not recommended and accuracy values 
+can be less reliable. Pressing **Cancel** will bring you back to the *training window.*
 
 Relabel Data
 ~~~~~~~~~~~~
 
-Lastly, you can apply your trained classification network on already labeled data by opening the *Relabel window* using the **Relabel** button in the main window (see *Main window*). 
+Lastly, you can apply your trained classification network on already labeled data by opening the *Relabel window* using the **Relabel** 
+button in the main window (see *Main window*). 
 
-Again, the four upper buttons define which files should be relabeled by going into the respective subdirectories, including the selection of a specific batch file (blue box). 
-By default, *All Files* of your selection will be used. With the tickbox *Overwrite Already Segmented Files* you can decide whether files that have already been manually classified (and marked as *Classified*, see above) 
+Again, the four upper buttons define which files should be relabeled by going into the respective subdirectories, including the selection 
+of a specific batch file (blue box). 
+By default, *All Files* of your selection will be used. With the tickbox *Overwrite Already Segmented Files* you can decide whether files 
+that have already been manually classified (and marked as *Classified*, see above) 
 should be overwritten and classified by the network. **Ticking the box will enable relabeling of these files.** 
 
 In the drop-down menu *Select Trained Classification Model* you can select the desired trained classification model. 
-Its content is generated from all saved classification models in the *trained_models* directory. When pressing the **Relabel** button, the replacement of labels will be started indicated by a green progress bar 
-at the bottom of the *Relabel* window. Once all labels are replaced, you will be informed and the *Relabel window* will be closed.
+Its content is generated from all saved classification models in the *trained_models* directory. When pressing the **Relabel** button, 
+the replacement of labels will be started indicated by a green progress bar 
+at the bottom of the *Relabel* window. Once all labels are replaced, you will be informed. 
+Closing the *Relabel* window while the process is still running will open a window asking whether you want to stop relabeling or not. 
+Pressing **Yes** will stop the process and the labels will be replaced up to this point only.
 
 .. figure:: _static/images/image45.png
    :alt: Ein Bild, das Text, Screenshot, Schrift, Display enthält.
