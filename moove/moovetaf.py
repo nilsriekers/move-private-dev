@@ -1,3 +1,7 @@
+# important first import
+import torch
+import torch.nn.functional as F
+
 import os
 import re
 import sys
@@ -17,6 +21,7 @@ from scipy.io import wavfile
 from jinja2 import Template
 from pathlib import Path
 from moove.utils.movefuncs_utils import save_notmat
+from moove.utils.training_utils import _load_checkpoint_with_version_fallback
 from moove import templates
 
 # Set up logging
@@ -92,10 +97,6 @@ min_silent_duration = float(config.get(bird_name, 'min_silent_duration'))
 min_syllable_length = float(config.get(bird_name, 'min_syllable_length'))
 
 if realtime_classification:
-    # Conditional imports
-    import torch
-    import torch.nn.functional as F
-
     # Load and initialize models
     seg_model_name = config.get(bird_name, 'segmentation_model_name')
     class_model_name = config.get(bird_name, 'classification_model_name')
@@ -138,7 +139,7 @@ if realtime_classification:
         class_model_name = class_model_name[:-4]
 
     # Load segmentation model
-    checkpoint = torch.load(os.path.join(model_dir_path, f'{seg_model_name}.pth'))
+    checkpoint = _load_checkpoint_with_version_fallback(os.path.join(model_dir_path, f'{seg_model_name}.pth'))
     seg_model = checkpoint['model']
     metadata = checkpoint['metadata']
 
@@ -147,7 +148,7 @@ if realtime_classification:
     seg_model.eval()
 
     # Load classification model
-    checkpoint = torch.load(os.path.join(model_dir_path, f'{class_model_name}.pth'))
+    checkpoint = _load_checkpoint_with_version_fallback(os.path.join(model_dir_path, f'{class_model_name}.pth'))
     class_model = checkpoint['model']
     metadata.update(checkpoint['metadata'])
 
