@@ -86,7 +86,7 @@ unexpected errors, try pinning NumPy < 2:
    pip install "numpy<2"
 
 Poetry errors during installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Moove has migrated from Poetry to **uv** / **hatchling**.  If you cloned
 an older version of the repository that still uses ``poetry.lock``, pull
@@ -97,7 +97,7 @@ Using MooveTaf
 --------------
 
 My recording starts but the threshold for recording is never triggered
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If your MooveTaf starts normally after selecting an input and output device, 
 you should see the line "Threshold triggered" in the terminal once you make a sound. 
@@ -116,7 +116,7 @@ works properly or try using a different input device.
    Remember that dB is a logarithmic and relative scale, so changing the threshold does not work as linear as one might think. 
 
 My recording starts but my bouts are not saved
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If your MooveTaf starts normally and you see the line "Threshold triggered", 
 once your sound ends the line "Saving Bout" should appear in the terminal. 
@@ -152,12 +152,12 @@ Folders beginning with ``.`` are hidden by default on Linux and macOS:
 The folder location can be changed -- see *MooveTAF* for details. If you do so, the files fill be saved in that directory 
 instead of your home directory.
 
-.. note::
+.. attention::
    Do not delete the ``.moove`` folder that was created in your home directory initially, as the new saving directory
    has to be set here in the initial ``config`` file. Any changes to the ``config`` have to be made within the original directory.
 
 Why are there big red "stripes" in the middle of my recordings?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Moove is a pretty computation-heavy program. While you record with MooveTaf, we strongly recommend not 
 using the computer for anything else. If you want to do so, make sure that your computer meets
@@ -193,7 +193,7 @@ Folders beginning with ``.`` are hidden by default on Linux and macOS:
 The folder location can be changed -- see *MooveTAF* for details.
 
 Why does my GUI not open anymore?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In case you encounter an error stating something like "file cannot be found" while trying to open the GUI, 
 it is very likely that you changed something in your folder structure and/ or deleted a file/ folder that

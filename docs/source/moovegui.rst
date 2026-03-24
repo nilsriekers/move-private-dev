@@ -26,7 +26,7 @@ The main window of the GUI is described in more detail in the section *Main wind
 
 The parameters that can be set in the config are described in the table below (Table 2).
 
-.. table:: Table 2: Config settings for the MooveGUI
+.. table:: Config settings for the MooveGUI
 
    +--------------------+-------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**      | **Default Value** | **Description**                                                                                                                                                                               |
@@ -163,7 +163,7 @@ For the segmentation process, you can define five parameters that are explained 
 Pressing the button ‘\ **Segment**\ ’ will start the segmentation process with the given parameters on the selected file(s), indicated by a green progress bar 
 at the bottom of the window. This will determine syllable onsets and offsets in the raw audio data.
 
-.. table:: Table 3: Resegmentation parameters for using evfuncs
+.. table:: Resegmentation parameters for using evfuncs
 
    +-------------------------+----------------------+------------------------------------------------------------------------------------+
    | **Parameter**           | **Default Value**    | **Description**                                                                    |
@@ -260,7 +260,7 @@ The parameters that can be set to train the network are explained in the table b
 .. note::
       We do not recommend downsampling if you’re especially interested in ‘repeats’ or if your dataset contains syllables that only occur very rarely.
 
-.. table:: Table 4: Parameters for training the segmentation network
+.. table:: Parameters for training the segmentation network
 
    +----------------------------+-------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**              | **Default Value** | **Description**                                                                                                                                                                    |
@@ -334,7 +334,7 @@ The resegmentation parameters can be adjusted below and are explained in the fol
 will start the resegmentation process of the selected files, indicated by a green progress bar at the bottom of the window. Once all files are resegmented, you will be informed 
 and the *Resegmentation window* will close.
 
-.. table:: Table 5: Parameters for resegmenting using a trained network
+.. table:: Parameters for resegmenting using a trained network
 
    +---------------------+--------------------+--------------------------------------------------------------------------------------+
    | **Parameter**       | **Default Value**  | **Description**                                                                      |
@@ -380,7 +380,7 @@ the suffix *\_clus* will be added automatically.
 
 The following adjustable parameters will be used in the spectrogram calculation and are described in the table below.
 
-.. table:: Table 6: Parameters for creating a cluster dataset
+.. table:: Parameters for creating a cluster dataset
 
    +-------------------+-------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**     | **Default Value** | **Description**                                                                                                                                                                               |
@@ -412,7 +412,7 @@ Once the cluster dataset is created, the dimensionality reduction using UMAP can
 Below, the input parameters for the UMAP algorithm and the following k-Means algorithm can be set (Table 7). The button **Cluster Syllables** will start the process, indicated by the ‘\ *Running*\ ’ 
 label at the bottom of the window.
 
-.. table:: Table 7: Parameters for clustering syllables
+.. table:: Parameters for clustering syllables
 
    +---------------+-------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter** | **Default Value** | **Description**                                                                                                                                             |
@@ -508,7 +508,7 @@ The training dataset for the classification network is generated from the spectr
 For the classification network, only a fixed time interval after a detected onset is used as input (*N Input Chunks/Size*). This parameter can be set below among others, 
 as described in the table below (Table 8). You cannot create empty datasets.
 
-.. table:: Table 8: Parameters for creating a classification training dataset
+.. table:: Parameters for creating a classification training dataset
 
    +---------------------+-------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**       | **Default Value** | **Description**                                                                                                                                                                               |
@@ -543,7 +543,7 @@ In the drop-down menu *Select Training Dataset* you can choose between your prev
 .. note::
       We do not recommend downsampling if you’re especially interested in ‘repeats’ or if your dataset contains syllables that only occur very rarely.
 
-.. table:: Table 9: Parameters for training the classification network
+.. table:: Parameters for training the classification network
 
    +-------------------------+-------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**           | **Default Value** | **Description**                                                                                                                                                                    |
@@ -559,12 +559,19 @@ In the drop-down menu *Select Training Dataset* you can choose between your prev
    | Early Stopping Patience | 5                 | Sets the number of epochs without improvement of the validation data after which the training is terminated automatically. Higher early stopping patience can lead to overfitting. |
    +-------------------------+-------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+.. attention:: Make sure you enable or disable augmentation in the **Augmentation...** window.
+
 Data Augmentation
 ^^^^^^^^^^^^^^^^^
 
 To improve generalization and reduce overfitting, data augmentation can be applied during classification training.
 The **Augmentation...** button next to the *Downsampling* checkbox opens a configuration dialog where augmentation
 can be enabled or disabled and the individual parameters can be adjusted.
+
+.. figure:: _static/images/image58.png
+   :width: 3.36806in
+
+   Augmentation window
 
 When enabled, each training spectrogram has a configurable probability (default 20%) of being augmented per epoch.
 For each augmented sample, one of the following four transformations is randomly selected and applied:
@@ -576,7 +583,7 @@ For each augmented sample, one of the following four transformations is randomly
 
 The augmentation parameters are described in the table below.
 
-.. table:: Table 10: Data augmentation parameters for classification training
+.. table:: Data augmentation parameters for classification training
 
    +---------------------+-------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
    | **Parameter**       | **Default Value** | **Description**                                                                                                                                   |
