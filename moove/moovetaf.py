@@ -600,6 +600,24 @@ def stream_callback(indata, outdata, frames, time_info, status):
             bout_index2wait = int(seconds_to_index(t_after, chunk_size, frame_rate))
 
         if bout_index2wait == 0:
+            # Before saving, drop incomplete trailing entries (e.g., onset without offset/label).
+            # This keeps not.mat arrays aligned and prevents one-extra-onset files.
+            while len(onsets) > len(offsets):
+                onsets.pop()
+                logger.debug("Dropped dangling onset before save")
+
+            while len(offsets) > len(onsets):
+                offsets.pop()
+                logger.debug("Dropped dangling offset before save")
+
+            complete_syllables = min(len(onsets), len(offsets), len(pred_syl_list))
+            while len(onsets) > complete_syllables:
+                onsets.pop()
+            while len(offsets) > complete_syllables:
+                offsets.pop()
+            while len(pred_syl_list) > complete_syllables:
+                pred_syl_list.pop()
+
             bout_data_to_save = raw_audio_chunks.copy()
             bout_indexes_waited_copy = bout_indexes_waited
             bout_rec_dt_copy = bout_recdt
