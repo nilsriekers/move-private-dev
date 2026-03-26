@@ -640,7 +640,11 @@ def stream_callback(indata, outdata, frames, time_info, status):
             bout_indexes_waited = 0
             y_pred_list = y_pred_list[-n:] if realtime_classification else []
             onset_flag = False
+            class_flag = False
+            waited_class_time = 0
+            missing_y_pred_flag = False
             offset_pending = False
+            offset_detected_time = 0
             bout_flag = False
             pred_syl_list = []
             pred_syl_list_for_playback = []
@@ -703,9 +707,37 @@ def stream_callback(indata, outdata, frames, time_info, status):
                         if last_duration < (min_syllable_length * 1000):
                             onsets.pop()
                             offsets.pop()
-                            if len_ypred == len_offset:
+                            if class_flag:
+                                # Short syllable is discarded while classification is pending.
+                                # Abort current classification to avoid adding a stale label.
+                                class_flag = False
+                                waited_class_time = 0
+                                offset_pending = False
+                                offset_detected_time = 0
+                                missing_y_pred_flag = False
+                                logger.debug("Discarded short syllable and aborted pending classification")
+                            elif len_ypred == len_offset:
                                 pred_syl_list.pop()
                                 pred_syl_list_for_playback.pop()
+                            elif len_ypred == (len_offset - 1):
+                                # No label exists yet for this discarded syllable.
+                                logger.debug("Discarded short syllable had no label to remove")
+                            else:
+                                logger.warning(
+                                    "Mismatch detected during short-syllable discard; resyncing state "
+                                    "(onsets=%s offsets=%s labels=%s)",
+                                    len(onsets), len(offsets), len(pred_syl_list)
+                                )
+                                complete_syllables = min(len(onsets), len(offsets), len(pred_syl_list))
+                                onsets = onsets[:complete_syllables]
+                                offsets = offsets[:complete_syllables]
+                                pred_syl_list = pred_syl_list[:complete_syllables]
+                                pred_syl_list_for_playback = pred_syl_list.copy()
+                                class_flag = False
+                                waited_class_time = 0
+                                missing_y_pred_flag = False
+                                offset_pending = False
+                                offset_detected_time = 0
                         
                         # Reset flags for new onset and offset
                         onset_flag = False
@@ -755,14 +787,37 @@ def stream_callback(indata, outdata, frames, time_info, status):
                             # Remove the last onset, offset, and corresponding pred_syl_list entry
                             onsets.pop()
                             offsets.pop()
-                            if len_ypred == len_offset:
+                            if class_flag:
+                                # Short syllable is discarded while classification is pending.
+                                # Abort current classification to avoid adding a stale label.
+                                class_flag = False
+                                waited_class_time = 0
+                                offset_pending = False
+                                offset_detected_time = 0
+                                missing_y_pred_flag = False
+                                logger.debug("Discarded short syllable and aborted pending classification")
+                            elif len_ypred == len_offset:
                                 pred_syl_list.pop()
                                 pred_syl_list_for_playback.pop()
                             elif len_ypred == (len_offset - 1):
-                                missing_y_pred_flag = True
-                                logger.debug("Missing Y_PRED_FLAG set to True")
+                                # No label exists yet for this discarded syllable.
+                                logger.debug("Discarded short syllable had no label to remove")
                             else:
-                                logger.error("Mismatch in lengths!")
+                                logger.warning(
+                                    "Mismatch detected during short-syllable discard; resyncing state "
+                                    "(onsets=%s offsets=%s labels=%s)",
+                                    len(onsets), len(offsets), len(pred_syl_list)
+                                )
+                                complete_syllables = min(len(onsets), len(offsets), len(pred_syl_list))
+                                onsets = onsets[:complete_syllables]
+                                offsets = offsets[:complete_syllables]
+                                pred_syl_list = pred_syl_list[:complete_syllables]
+                                pred_syl_list_for_playback = pred_syl_list.copy()
+                                class_flag = False
+                                waited_class_time = 0
+                                missing_y_pred_flag = False
+                                offset_pending = False
+                                offset_detected_time = 0
                         onset_flag = False
                         offset_pending = False
                         offset_detected_time = 0
@@ -864,14 +919,37 @@ def stream_callback(indata, outdata, frames, time_info, status):
                                 # Remove the last onset, offset, and corresponding pred_syl_list entry
                                 onsets.pop()
                                 offsets.pop()
-                                if len_ypred == len_offset:
+                                if class_flag:
+                                    # Short syllable is discarded while classification is pending.
+                                    # Abort current classification to avoid adding a stale label.
+                                    class_flag = False
+                                    waited_class_time = 0
+                                    offset_pending = False
+                                    offset_detected_time = 0
+                                    missing_y_pred_flag = False
+                                    logger.debug("Discarded short syllable and aborted pending classification")
+                                elif len_ypred == len_offset:
                                     pred_syl_list.pop()
                                     pred_syl_list_for_playback.pop()
                                 elif len_ypred == (len_offset - 1):
-                                    missing_y_pred_flag = True
-                                    logger.debug("Missing Y_PRED_FLAG set to True")
+                                    # No label exists yet for this discarded syllable.
+                                    logger.debug("Discarded short syllable had no label to remove")
                                 else:
-                                    logger.error("Mismatch in lengths!")
+                                    logger.warning(
+                                        "Mismatch detected during short-syllable discard; resyncing state "
+                                        "(onsets=%s offsets=%s labels=%s)",
+                                        len(onsets), len(offsets), len(pred_syl_list)
+                                    )
+                                    complete_syllables = min(len(onsets), len(offsets), len(pred_syl_list))
+                                    onsets = onsets[:complete_syllables]
+                                    offsets = offsets[:complete_syllables]
+                                    pred_syl_list = pred_syl_list[:complete_syllables]
+                                    pred_syl_list_for_playback = pred_syl_list.copy()
+                                    class_flag = False
+                                    waited_class_time = 0
+                                    missing_y_pred_flag = False
+                                    offset_pending = False
+                                    offset_detected_time = 0
                             onset_flag = False
                             offset_pending = False
                             offset_detected_time = 0
