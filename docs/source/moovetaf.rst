@@ -153,29 +153,46 @@ In the yellow highlighted part, the realtime classification can be enabled and s
 However, for baseline recordings no model will be trained yet. Therefore, **realtime_classification** is by default set to **False**. 
 Trained segmentation and classification models can later be added in the lines below, by default example networks are given. 
 For setting up these parameters check out *Targeting* below. You can **quit** MooveTaf by pressing Ctrl + C in the terminal window. 
-If you trained your models on a different chunk_size then the default 64 (see section *MooveGUI - Syllable segmentation*) you have to change the chunk_size in the config file before recording with online classification. 
+If you trained your models on a different chunk_size then the default 64 (see section *MooveGUI - Syllable segmentation*) 
+you have to change the chunk_size in the config file before recording with online classification. 
 This is not recommended since chunk_size influences classification performance and online recording performance.
 
 Targeting
 ---------
 
-Once you trained a model on your song data for following recording sessions (as explained in *MooveGUI*), you can use the trained networks to segment and classify online while recording.
+Once you trained a model on your song data for following recording sessions (as explained in *MooveGUI*), 
+you can use the trained networks to segment and classify online while recording.   
+To use your network, transfer the trained model ``.pth`` files from the trained_models folder in your .moove folder 
+to the trained_models folder in your recording computer.
 
-Additionally, you can target specific syllable sequences to get playback. Targeting while online classification has to be turned on separately: **targeting = True**.
+.. attention::
+   Make sure to use the ``.pth`` files, not any ``.bak`` files.
 
-The time for processing and classifying a syllable can be adjusted by changing the chunk_size. With the default chunk_size of 64, online syllable classification will take approximately **30ms**.
-Changing the chunk_size can lower this value but also make classification more prone to errors. If your syllables are very similar, increasing chunk_size might increase the classification accuracy, 
-but will decrease targeting latency.
+Additionally, you can target specific syllable sequences to get playback. 
+Targeting while online classification has to be turned on separately: **targeting = True**.
 
-You can target different sequences and playback either computer generated white noise or different sound files (``.wav``), that are stored in the folder given in the section: **playback_dir**.
+The time for processing and classifying a syllable can be adjusted by changing the chunk_size. 
+With the default chunk_size of 64, online syllable classification will take approximately **30ms**.
+
+
+.. hint::
+   Changing the chunk_size can lower classification time but also make it more prone to errors. 
+   If your syllables are very similar, increasing chunk_size might increase the classification accuracy, 
+   but will decrease targeting latency.
+
+You can target different sequences and playback either computer generated white noise or different sound files (``.wav``), 
+that are stored in the folder given in the section: **playback_dir**.
 
 The path in the playback_dir points to the folder where the sound files are. They have to be ``.wav`` files. 
-Since it will take all .wav files into consideration as a playback option, make sure that only files you want to playback are in the folder you have given. 
-If multiple .wav files are in the same folder, the sounds will be chosen randomly for each target found.
+Since it will take all ``.wav`` files into consideration as a playback option, make sure that only files you want 
+to playback are in the folder you have given. 
+If multiple ``.wav`` files are in the same folder, the sounds will be chosen randomly for each target found.
 
-While targeting with different sequences (**targeted_sequence** = hfd$, stl$), the script chooses one of the given sequences before each bout 
+While targeting with different sequences (**targeted_sequence** = hfd$, stl$), the script chooses one of the 
+given sequences before each bout 
 and plays the given sounds at random on the last syllable of the sequence (this is defined by the $ at the end of each sequence, 
-since it follows the rules of regular expressions). You can choose any regular expression that narrows down your targeting to the exact sequence you want to target. 
+since it follows the rules of regular expressions). You can choose any regular expression that narrows down your targeting 
+to the exact sequence you want to target. 
 If you are not familiar with regular expressions in python, try asking any AI or Google.
 
 .. table:: Parameters in the config for targeting with MooveTaf

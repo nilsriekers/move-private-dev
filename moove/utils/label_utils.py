@@ -72,11 +72,11 @@ def _load_checkpoint_with_compat(model_path, device, app_state):
                 if not os.path.exists(backup_path):
                     shutil.copy2(model_path, backup_path)
                 torch.save(checkpoint, model_path)
-
-                app_state.logger.warning(
-                    "Loaded legacy checkpoint via weights_only=False and migrated in place: %s",
-                    model_path,
-                )
+                # Hide warning for now from console 
+                # app_state.logger.warning(
+                #     "Loaded legacy checkpoint via weights_only=False and migrated in place: %s",
+                #     model_path,
+                # )
                 return checkpoint
             except Exception as legacy_error:
                 raise RuntimeError(

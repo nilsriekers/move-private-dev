@@ -300,8 +300,8 @@ a window asking whether you want to stop training or not. Pressing **Yes** will 
 The training progress can be observed in the terminal, where the current 
 iteration of training (epoch) and the current accuracy of the network is shown.
 
-.. note::
-   Training will only start once the button **ok** is pressed.
+.. attention::
+   Training will only start once the button **Ok** is pressed.
 
 .. figure:: _static/images/image38.png
    :width: 6.26806in
@@ -515,7 +515,7 @@ checkbox in the top right corner (5, see above) to mark these files. This inform
 
 .. note::
    While you are in the *Label interactive* mode, using shortcuts to switch modes is not possible, as the keys will be used for relabelling.
-.. note::
+.. hint::
    You can jump inbetween labels using the arrow keys.
 
 Once you all labels are correct, a training dataset can be created in the right upper part of the *training window* (red box) under classification network.
@@ -650,8 +650,8 @@ switching to ‘\ *Training in Progress’* once the training has started
 and finally informing you when the training is finished. Closing the *Training window* while the process is still running will open a window asking whether 
 you want to stop training or not. Pressing **Yes** will stop the process and the trained model will not be saved.
 
-.. note::
-   The start of the training requires confirmation via pressing the **Ok** button. 
+.. attention::
+   Training will only start once the button **Ok** is pressed.. 
 
 The trained model can be found as a ``.pth`` file in the *trained_models* directory, 
 together with a ``.svg`` file containing the classification matrix. This matrix shows the performance of the network as the accuracy of 
