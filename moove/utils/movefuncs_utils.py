@@ -359,16 +359,16 @@ def ensure_recfile_exists_and_has_flags(file_path):
 
 
 def extract_raw_audio(full_audio_data, chunk_size):
-    '''Extracts raw audio data from a full audio file.'''
+    '''Extracts raw audio data from a full audio file.
+
+    Returns a numpy array of shape (chunk_size, num_full_chunks) where each
+    row contains the values at a given position across all chunks.
+    '''
+    full_audio_data = np.asarray(full_audio_data, dtype=np.float32)
     num_full_chunks = len(full_audio_data) // chunk_size
-
-    audio_features = [[] for _ in range(chunk_size)]
-
-    for i in range(num_full_chunks * chunk_size):
-        chunk_index = i % chunk_size
-        audio_features[chunk_index].append(full_audio_data[i])
-
-    return audio_features
+    trimmed = full_audio_data[:num_full_chunks * chunk_size]
+    # Reshape to (num_full_chunks, chunk_size) then transpose to (chunk_size, num_full_chunks)
+    return trimmed.reshape(num_full_chunks, chunk_size).T
 
 
 def play_sound(display_dict, ax1):

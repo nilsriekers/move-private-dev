@@ -255,19 +255,36 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
     hist_size = int(app_state.train_segmentation_params['hist_size'].get()) + 1
     overlap_chunks = app_state.train_segmentation_params['overlap_chunks'].get()
 
-    all_features = []
+    all_feature_arrays = []
     cancelled = False
 
     def generate_concatenated_chunks_with_labels(arr, hist_size, overlap_chunks=False):
-        concatenated_chunks = []
+        """Concatenate consecutive chunk windows with labels.
+
+        arr: (n_chunks, chunk_size+2) — col 0 = file_index, cols 1:-1 = features, col -1 = label
+        Returns: (n_windows, 1 + hist_size*chunk_size + 1)
+        """
+        n = len(arr)
+        if n < hist_size:
+            return np.empty((0, arr.shape[1]), dtype=np.float32)
         step_size = 1 if overlap_chunks else hist_size
-        for i in range(0, len(arr) - (hist_size - 1), step_size):
-            if np.all(arr[i:i + hist_size, 0] == arr[i, 0]):
-                file_index = arr[i, 0]
-                chunk_data = np.concatenate(arr[i:i + hist_size, 1:-1]).flatten()
-                label = arr[i, -1]
-                concatenated_chunks.append(np.concatenate(([file_index], chunk_data, [label])))
-        return np.array(concatenated_chunks)
+        features = arr[:, 1:-1]
+        labels = arr[:, -1]
+        file_idx = arr[0, 0]
+        chunk_width = features.shape[1]
+        concat_width = hist_size * chunk_width
+
+        indices = list(range(0, n - (hist_size - 1), step_size))
+        num_windows = len(indices)
+        if num_windows == 0:
+            return np.empty((0, 1 + concat_width + 1), dtype=np.float32)
+
+        result = np.empty((num_windows, 1 + concat_width + 1), dtype=np.float32)
+        result[:, 0] = file_idx
+        for j, i in enumerate(indices):
+            result[j, 1:-1] = features[i:i + hist_size].ravel()
+            result[j, -1] = labels[i]
+        return result
 
     invoke_in_main_thread(progressbar.hide)
 
@@ -332,22 +349,24 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
         invoke_in_main_thread(progressbar.setValue, file_index + 1)
 
         audio_features = extract_raw_audio(rawsong, chunk_size)
-        labels = np.zeros(len(audio_features[0]))
+        # audio_features is (chunk_size, num_full_chunks) — transpose to (num_full_chunks, chunk_size)
+        chunks = np.asarray(audio_features, dtype=np.float32).T
+        n_chunks = chunks.shape[0]
+        labels = np.zeros(n_chunks, dtype=np.float32)
 
         for i, start_idx in enumerate(range(0, len(rawsong) - chunk_size + 1, chunk_size)):
             end_idx = start_idx + chunk_size
-            if i < len(labels) and any(onset <= end_idx and start_idx <= offset for onset, offset in zip(onsets, offsets)):
+            if i < n_chunks and any(onset <= end_idx and start_idx <= offset for onset, offset in zip(onsets, offsets)):
                 labels[i] = 1
 
-        file_features = []
-        for i, features in enumerate(np.array(audio_features).T):
-            row = np.insert(features, 0, file_index)
-            row = np.append(row, labels[i])
-            file_features.append(row)
+        # Build [file_index, features..., label] per chunk via vectorized hstack
+        file_indices = np.full((n_chunks, 1), file_index, dtype=np.float32)
+        labels_col = labels.reshape(-1, 1)
+        file_features = np.hstack([file_indices, chunks, labels_col])
 
-        concatenated = generate_concatenated_chunks_with_labels(np.array(file_features), hist_size, overlap_chunks)
+        concatenated = generate_concatenated_chunks_with_labels(file_features, hist_size, overlap_chunks)
         if concatenated.size > 0:
-            all_features.extend(concatenated)
+            all_feature_arrays.append(concatenated)
 
     if cancelled:
         invoke_in_main_thread(progressbar.hide)
@@ -355,13 +374,14 @@ def create_segmentation_training_dataset(app_state, progressbar, dataset_name, a
             app_state.training_window, "Info", "Segmentation dataset creation aborted."))
         return
 
-    if len(all_features) == 0:
+    if len(all_feature_arrays) == 0:
         invoke_in_main_thread(progressbar.hide)
         invoke_in_main_thread(lambda: show_info(
             app_state.training_window, "Error", "No valid files could be processed for segmentation dataset creation."))
         return
 
-    feature_array = np.array(all_features, dtype=object)
+    feature_array = np.vstack(all_feature_arrays)
+    del all_feature_arrays  # free memory before save
     save_features(app_state, dataset_name, feature_array, chunk_size=chunk_size, hist_size=hist_size, num_syls=num_segs)
 
     app_state.update_segmentation_datasets_combobox()
