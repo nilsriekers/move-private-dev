@@ -222,7 +222,13 @@ def train_classification(bird, seed, hyperparams=None, aug_params=None,
                              batch_size=bs, shuffle=False)
 
     # ── Model / optimiser ────────────────────────────────────────────
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    log.info("Device: %s", device)
     model = CNN(input_shape=input_shape, num_classes=num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=hp["learning_rate"])

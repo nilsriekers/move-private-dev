@@ -205,7 +205,7 @@ def start_segmentation_training(parent, app_state, training_dataset_name):
     if downsampling:
         X_train, y_train = downsample_data(X_train, y_train)
         X_val, y_val = downsample_data(X_val, y_val)
-        X_test, y_test = downsample_data(X_test, y_test)
+        # Test set is NOT downsampled: evaluate on the natural class distribution.
 
     X_train_tensor = torch.tensor(X_train)
     y_train_tensor = torch.tensor(y_train).unsqueeze(1)
@@ -496,7 +496,7 @@ def start_classification_training(parent, app_state, dataset_name, bird):
     if downsampling:
         train_data, train_labels = downsample_data(train_data, train_labels)
         val_data, val_labels = downsample_data(val_data, val_labels)
-        test_data, test_labels = downsample_data(test_data, test_labels)
+        # Test set is NOT downsampled: evaluate on the natural class distribution.
 
     train_labels = torch.tensor(train_labels).long()
     val_labels = torch.tensor(val_labels).long()

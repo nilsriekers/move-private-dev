@@ -37,6 +37,7 @@ from paper_experiments.config import (
 from paper_experiments.metrics import (
     apply_sliding_window, collar_ms_to_frames,
     collar_segmentation_metrics, framewise_metrics,
+    onset_collar_segmentation_metrics,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
@@ -206,7 +207,13 @@ def train_segmentation(bird, seed, hyperparams=None, save_checkpoint=None):
     test_loader = DataLoader(TensorDataset(X_te, y_te), batch_size=bs, shuffle=False, drop_last=False)
 
     # ── Model / optimiser ────────────────────────────────────────────
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    log.info("Device: %s", device)
     model = ConvMLP(input_size=X_train.shape[1]).to(device)
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=hp["learning_rate"])
@@ -332,6 +339,21 @@ def train_segmentation(bird, seed, hyperparams=None, save_checkpoint=None):
                  cms, cm["precision"], cm["recall"], cm["f1"],
                  cm["tp"], cm["n_pred"], cm["n_true"])
 
+    # ── Onset-only collar metrics (raw + smoothed) ────────────────────
+    onset_collar_raw = {}
+    for cms in COLLAR_VALUES_MS:
+        cf = collar_ms_to_frames(cms, chunk_size, SAMPLE_RATE)
+        cm = onset_collar_segmentation_metrics(all_true, all_preds, cf)
+        onset_collar_raw[f"@{cms}ms"] = cm
+        log.info("OnsetCol(raw) %2dms  P=%.4f  R=%.4f  F1=%.4f", cms, cm["precision"], cm["recall"], cm["f1"])
+
+    onset_collar_smoothed = {}
+    for cms in COLLAR_VALUES_MS:
+        cf = collar_ms_to_frames(cms, chunk_size, SAMPLE_RATE)
+        cm = onset_collar_segmentation_metrics(all_true, smoothed_preds, cf)
+        onset_collar_smoothed[f"@{cms}ms"] = cm
+        log.info("OnsetCol(sw)  %2dms  P=%.4f  R=%.4f  F1=%.4f", cms, cm["precision"], cm["recall"], cm["f1"])
+
     # ── Save checkpoint (if enabled) ─────────────────────────────────
     if save_checkpoint:
         ckpt_metadata = {
@@ -343,6 +365,14 @@ def train_segmentation(bird, seed, hyperparams=None, save_checkpoint=None):
         torch.save({"model": best_model, "metadata": ckpt_metadata}, ckpt_path)
         log.info("Checkpoint saved: %s", ckpt_path)
 
+    # ── Save predictions for future metric computation ──────────────
+    preds_path = os.path.join(run_dir, "predictions.npz")
+    np.savez_compressed(preds_path,
+                        y_true=np.array(all_true, dtype=np.int8),
+                        y_pred=np.array(all_preds, dtype=np.int8),
+                        y_pred_smoothed=np.array(smoothed_preds, dtype=np.int8))
+    log.info("Predictions saved: %s", preds_path)
+
     # ── Collect results ──────────────────────────────────────────────
     results = {
         "bird": bird,
@@ -351,9 +381,11 @@ def train_segmentation(bird, seed, hyperparams=None, save_checkpoint=None):
         "test_accuracy": float(np.mean(np.array(all_preds) == np.array(all_true))),
         "framewise": fw,
         "collar": collar_results,
+        "onset_collar": onset_collar_raw,
         "sliding_window_params": sw,
         "framewise_smoothed": fw_smoothed,
         "collar_smoothed": collar_smoothed,
+        "onset_collar_smoothed": onset_collar_smoothed,
         "n_pred_segments_smoothed": n_pred_segments,
         "n_true_segments_smoothed": n_true_segments,
         "hyperparameters": hp,

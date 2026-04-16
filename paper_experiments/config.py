@@ -4,11 +4,11 @@ import os
 # ── Disk-space guard ─────────────────────────────────────────────────
 # Set to True to save .pth checkpoint files after training.
 # When False, only metrics / TensorBoard logs are kept.
-SAVE_CHECKPOINTS = False
+SAVE_CHECKPOINTS = True
 
 # ── Replicates ───────────────────────────────────────────────────────
-N_REPLICATES = 3
-REPLICATE_SEEDS = [42, 123, 456]
+N_REPLICATES = 5
+REPLICATE_SEEDS = [42, 123, 456, 789, 1024]
 
 # ── Collar values for segmentation metrics (milliseconds) ───────────
 COLLAR_VALUES_MS = [5, 10, 15, 20]
@@ -24,13 +24,19 @@ TENSORBOARD_DIR = os.path.join(OUTPUT_DIR, "runs")
 
 # ── Bird configurations ──────────────────────────────────────────────
 BIRDS = {
+    "ye00pu07": {
+        "seg_dataset": "bird1_new_seg_ds_seg.pkl",
+        "class_dataset": "bird1_new_class_ds_class.pkl",
+    },
     "bu04bk04": {
         "seg_dataset": "bu04bk04_sc_1812_seg.pkl",
         "class_dataset": "bu04bk04_sc_1812_merged_class.pkl",
     },
     "gy07bu07": {
-        "seg_dataset": "gy07bu07_1802_seg.pkl",
-        "class_dataset": "gy07bu07_1812_merged_class.pkl",
+        "seg_dataset": "gy07bu07_nooverlapchunks_seg_seg.pkl",
+        # OLD (inconsistent, 8 classes b/c/d/e/f/g/i/j): "gy07bu07_1812_merged_class.pkl"
+        # NEW (2026-04-09): derived from gy07bu07_1812_class.pkl with m/n/x dropped → 11 classes a-k
+        "class_dataset": "gy07bu07_1812_no_mnx_class.pkl",
     },
     "br08pk08": {
         "seg_dataset": "br08pk08_1812_seg.pkl",

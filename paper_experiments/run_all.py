@@ -21,7 +21,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from paper_experiments.config import BIRDS, N_REPLICATES, OUTPUT_DIR, REPLICATE_SEEDS
 from paper_experiments.metrics import combined_pipeline_metrics
-from paper_experiments.plot_results import generate_all_plots
 from paper_experiments.train_segmentation import train_segmentation
 from paper_experiments.train_classification import train_classification
 
@@ -51,15 +50,18 @@ def aggregate_segmentation(all_results):
             "framewise_f1": _mean_std(fw_f1),
         }
 
-        # Collar metrics
-        collar_keys = list(runs[0]["collar"].keys())
-        for ck in collar_keys:
-            cp = [r["collar"][ck]["precision"] for r in runs]
-            cr = [r["collar"][ck]["recall"] for r in runs]
-            cf = [r["collar"][ck]["f1"] for r in runs]
-            bird_summary[f"collar_{ck}_precision"] = _mean_std(cp)
-            bird_summary[f"collar_{ck}_recall"] = _mean_std(cr)
-            bird_summary[f"collar_{ck}_f1"] = _mean_std(cf)
+        # Collar metrics (raw, smoothed, onset-only variants)
+        for section in ["collar", "collar_smoothed", "onset_collar", "onset_collar_smoothed"]:
+            if section not in runs[0]:
+                continue
+            collar_keys = list(runs[0][section].keys())
+            for ck in collar_keys:
+                cp = [r[section][ck]["precision"] for r in runs]
+                cr = [r[section][ck]["recall"] for r in runs]
+                cf = [r[section][ck]["f1"] for r in runs]
+                bird_summary[f"{section}_{ck}_precision"] = _mean_std(cp)
+                bird_summary[f"{section}_{ck}_recall"] = _mean_std(cr)
+                bird_summary[f"{section}_{ck}_f1"] = _mean_std(cf)
 
         summary[bird] = bird_summary
     return summary
@@ -125,12 +127,42 @@ def run_all(birds, seeds, run_seg=True, run_class=True):
         if run_seg:
             seg_results[bird] = []
             for seed in seeds:
+                # Check if segmentation result exists and is complete (never overwrite!)
+                seg_dir = os.path.join(OUTPUT_DIR, "seg", bird, f"seed_{seed}")
+                seg_result_path = os.path.join(seg_dir, "results.json")
+                seg_result = None
+                if os.path.exists(seg_result_path):
+                    try:
+                        with open(seg_result_path, "r") as f:
+                            seg_result = json.load(f)
+                        # Check for a key that indicates a complete run (e.g., 'test_accuracy')
+                        if "test_accuracy" in seg_result:
+                            log.info(f"Skip segmentation {bird} seed={seed} (already complete)")
+                            seg_results[bird].append(seg_result)
+                            continue
+                    except Exception as e:
+                        log.warning(f"Could not read {seg_result_path}: {e}")
+                # Run if not complete and nothing exists
                 r = train_segmentation(bird, seed)
                 seg_results[bird].append(r)
 
         if run_class:
             class_results[bird] = []
             for seed in seeds:
+                # Check if classification result exists and is complete (never overwrite!)
+                class_dir = os.path.join(OUTPUT_DIR, "class", bird, f"seed_{seed}")
+                class_result_path = os.path.join(class_dir, "results.json")
+                class_result = None
+                if os.path.exists(class_result_path):
+                    try:
+                        with open(class_result_path, "r") as f:
+                            class_result = json.load(f)
+                        if "test_accuracy" in class_result:
+                            log.info(f"Skip classification {bird} seed={seed} (already complete)")
+                            class_results[bird].append(class_result)
+                            continue
+                    except Exception as e:
+                        log.warning(f"Could not read {class_result_path}: {e}")
                 r = train_classification(bird, seed)
                 class_results[bird].append(r)
 
@@ -138,17 +170,29 @@ def run_all(birds, seeds, run_seg=True, run_class=True):
         if run_seg and run_class and bird in seg_results and bird in class_results:
             comb_results[bird] = []
             for seg_r, cls_r in zip(seg_results[bird], class_results[bird]):
+                # Check if combined result exists and is complete
+                run_dir = os.path.join(OUTPUT_DIR, "combined", bird, f"seed_{seg_r.get('seed', cls_r.get('seed', 'unknown'))}")
+                comb_result_path = os.path.join(run_dir, "results.json")
+                comb_result = None
+                if os.path.exists(comb_result_path):
+                    try:
+                        with open(comb_result_path, "r") as f:
+                            comb_result = json.load(f)
+                        if "framewise_smoothed" in comb_result:
+                            log.info(f"Skip combined {bird} seed={seg_r.get('seed', 'unknown')} (already complete)")
+                            comb_results[bird].append(comb_result)
+                            continue
+                    except Exception as e:
+                        log.warning(f"Could not read {comb_result_path}: {e}")
                 cm = combined_pipeline_metrics(seg_r, cls_r)
                 comb_results[bird].append(cm)
                 fw = cm["framewise_smoothed"]
-                log.info("Combined(%s seed=%d)  framewise(sw) acc=%.4f P=%.4f R=%.4f F1=%.4f",
-                         bird, seg_r["seed"], fw["accuracy"],
+                log.info("Combined(%s seed=%s)  framewise(sw) acc=%.4f P=%.4f R=%.4f F1=%.4f",
+                         bird, seg_r.get("seed", "unknown"), fw["accuracy"],
                          fw["precision"], fw["recall"], fw["f1"])
                 # Save per-replicate combined results
-                run_dir = os.path.join(OUTPUT_DIR, "combined", bird,
-                                       f"seed_{seg_r['seed']}")
                 os.makedirs(run_dir, exist_ok=True)
-                with open(os.path.join(run_dir, "results.json"), "w") as f:
+                with open(comb_result_path, "w") as f:
                     json.dump(cm, f, indent=2)
 
     # ── Summaries ────────────────────────────────────────────────────
@@ -179,9 +223,13 @@ def run_all(birds, seeds, run_seg=True, run_class=True):
         json.dump(combined, f, indent=2)
     log.info("Summary: %s", summary_path)
 
-    # ── Generate plots ───────────────────────────────────────────────
-    log.info("Generating plots...")
-    generate_all_plots()
+    # ── Generate plots (skip if matplotlib not available, e.g. on cloud VMs) ──
+    try:
+        from paper_experiments.plot_results import generate_all_plots
+        log.info("Generating plots...")
+        generate_all_plots()
+    except ImportError:
+        log.info("Skipping plot generation (matplotlib not available)")
 
     return combined
 
@@ -196,7 +244,9 @@ def main():
                         help="Run segmentation, classification, or both")
     args = parser.parse_args()
 
-    seeds = args.seeds or REPLICATE_SEEDS[:N_REPLICATES]
+    # Standardmäßig nur noch 3 Seeds (statt 5) verwenden
+    # seeds = args.seeds or REPLICATE_SEEDS[:N_REPLICATES]
+    seeds = args.seeds or REPLICATE_SEEDS[:3]  # <--- Nur noch 3 Seeds
     run_seg = args.type in ("seg", "both")
     run_class = args.type in ("class", "both")
     run_all(args.birds, seeds, run_seg=run_seg, run_class=run_class)

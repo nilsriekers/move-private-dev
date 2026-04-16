@@ -55,53 +55,101 @@ def _extract_segments(labels):
     return segments
 
 
-def collar_segmentation_metrics(y_true, y_pred, collar_frames):
-    """Segment-level P / R / F1 with collar tolerance.
+def _match_segments(true_segs, pred_segs, collar_frames, match_fn):
+    """Greedy segment matching. Returns full stats dict.
 
-    A predicted segment counts as a true-positive if **both** its onset and
-    offset are within *collar_frames* of a ground-truth segment (greedy
-    matching, each true segment used at most once).
+    match_fn(p, t, cf) -> bool
+        Returns True if predicted segment p matches true segment t within cf.
 
-    Parameters
-    ----------
-    y_true, y_pred : array-like of {0, 1}
-        Frame-level ground truth and predictions (for one file).
-    collar_frames : int
-        Tolerance in number of frames.
-
-    Returns
-    -------
-    dict with keys: precision, recall, f1, n_true, n_pred, tp
+    Stats returned
+    --------------
+    tp              : predictions that matched a unique true segment
+    fn              : true segments with no matching prediction  (n_true - tp)
+    fp              : predictions with no matching true segment  (n_pred - tp)
+    double_detections : unmatched predictions that overlap an already-matched
+                        true segment (subset of fp; reveals over-segmentation)
+    pure_fp         : fp - double_detections (completely spurious predictions)
+    n_true, n_pred, precision, recall, f1
     """
-    true_segs = _extract_segments(np.asarray(y_true))
-    pred_segs = _extract_segments(np.asarray(y_pred))
-
     if not pred_segs and not true_segs:
         return {"precision": 1.0, "recall": 1.0, "f1": 1.0,
-                "n_true": 0, "n_pred": 0, "tp": 0}
+                "tp": 0, "fn": 0, "fp": 0, "double_detections": 0, "pure_fp": 0,
+                "n_true": 0, "n_pred": 0}
     if not pred_segs:
         return {"precision": 0.0, "recall": 0.0, "f1": 0.0,
-                "n_true": len(true_segs), "n_pred": 0, "tp": 0}
+                "tp": 0, "fn": len(true_segs), "fp": 0,
+                "double_detections": 0, "pure_fp": 0,
+                "n_true": len(true_segs), "n_pred": 0}
     if not true_segs:
         return {"precision": 0.0, "recall": 0.0, "f1": 0.0,
-                "n_true": 0, "n_pred": len(pred_segs), "tp": 0}
+                "tp": 0, "fn": 0, "fp": len(pred_segs),
+                "double_detections": 0, "pure_fp": len(pred_segs),
+                "n_true": 0, "n_pred": len(pred_segs)}
 
-    matched_true = set()
-    tp = 0
-    for p_on, p_off in pred_segs:
-        for j, (t_on, t_off) in enumerate(true_segs):
+    matched_true = set()    # true segments already claimed by a prediction
+    matched_pred = set()    # predictions that claimed a true segment (tp)
+
+    for pi, p in enumerate(pred_segs):
+        for j, t in enumerate(true_segs):
             if j in matched_true:
                 continue
-            if abs(p_on - t_on) <= collar_frames and abs(p_off - t_off) <= collar_frames:
-                tp += 1
+            if match_fn(p, t, collar_frames):
                 matched_true.add(j)
+                matched_pred.add(pi)
                 break
 
+    tp = len(matched_pred)
+
+    # For unmatched predictions: distinguish doubles from pure false alarms.
+    # A double detection overlaps an already-matched true segment.
+    double_det = 0
+    pure_fp = 0
+    for pi, p in enumerate(pred_segs):
+        if pi in matched_pred:
+            continue
+        is_double = any(match_fn(p, t, collar_frames) for t in true_segs)
+        if is_double:
+            double_det += 1
+        else:
+            pure_fp += 1
+
+    fn = len(true_segs) - tp
+    fp = len(pred_segs) - tp   # == double_det + pure_fp
+
     precision = tp / len(pred_segs)
-    recall = tp / len(true_segs)
+    recall    = tp / len(true_segs)
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
-    return {"precision": float(precision), "recall": float(recall), "f1": float(f1),
-            "n_true": len(true_segs), "n_pred": len(pred_segs), "tp": tp}
+
+    return {
+        "precision": float(precision), "recall": float(recall), "f1": float(f1),
+        "tp": tp, "fn": fn, "fp": fp,
+        "double_detections": double_det, "pure_fp": pure_fp,
+        "n_true": len(true_segs), "n_pred": len(pred_segs),
+    }
+
+
+def collar_segmentation_metrics(y_true, y_pred, collar_frames):
+    """Segment-level P / R / F1 with collar tolerance on **both** onset and offset."""
+    true_segs = _extract_segments(np.asarray(y_true))
+    pred_segs = _extract_segments(np.asarray(y_pred))
+    return _match_segments(true_segs, pred_segs, collar_frames,
+                           lambda p, t, cf: abs(p[0]-t[0]) <= cf and abs(p[1]-t[1]) <= cf)
+
+
+def onset_collar_segmentation_metrics(y_true, y_pred, collar_frames):
+    """Segment-level P / R / F1 with collar tolerance on **onset only**."""
+    true_segs = _extract_segments(np.asarray(y_true))
+    pred_segs = _extract_segments(np.asarray(y_pred))
+    return _match_segments(true_segs, pred_segs, collar_frames,
+                           lambda p, t, cf: abs(p[0]-t[0]) <= cf)
+
+
+def offset_collar_segmentation_metrics(y_true, y_pred, collar_frames):
+    """Segment-level P / R / F1 with collar tolerance on **offset only**."""
+    true_segs = _extract_segments(np.asarray(y_true))
+    pred_segs = _extract_segments(np.asarray(y_pred))
+    return _match_segments(true_segs, pred_segs, collar_frames,
+                           lambda p, t, cf: abs(p[1]-t[1]) <= cf)
 
 
 def collar_ms_to_frames(collar_ms, chunk_size, sample_rate):
