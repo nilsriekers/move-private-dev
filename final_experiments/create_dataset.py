@@ -26,8 +26,21 @@ from scipy.signal import spectrogram as scipy_spectrogram
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Import moove helpers to guarantee identical computations
-from moove.utils.movefuncs_utils import extract_raw_audio
-from moove.utils.audio_utils import seconds_to_index
+# NOTE: We inline moove.utils helpers here to avoid importing via
+# moove/utils/__init__.py, which pulls in PyQt6 and breaks on headless VMs.
+
+
+def extract_raw_audio(full_audio_data, chunk_size):
+    """Identical to moove.utils.movefuncs_utils.extract_raw_audio."""
+    full_audio_data = np.asarray(full_audio_data, dtype=np.float32)
+    num_full_chunks = len(full_audio_data) // chunk_size
+    trimmed = full_audio_data[:num_full_chunks * chunk_size]
+    return trimmed.reshape(num_full_chunks, chunk_size).T
+
+
+def seconds_to_index(seconds, sample_rate):
+    """Identical to moove.utils.audio_utils.seconds_to_index."""
+    return int(seconds * sample_rate // 1000)
 
 
 # ── File collection ───────────────────────────────────────────────────

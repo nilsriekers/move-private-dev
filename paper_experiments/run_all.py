@@ -23,6 +23,7 @@ from paper_experiments.config import BIRDS, N_REPLICATES, OUTPUT_DIR, REPLICATE_
 from paper_experiments.metrics import combined_pipeline_metrics
 from paper_experiments.train_segmentation import train_segmentation
 from paper_experiments.train_classification import train_classification
+from paper_experiments.eval_baseline import run_baseline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 log = logging.getLogger(__name__)
@@ -115,9 +116,40 @@ def aggregate_combined(all_results):
     return summary
 
 
-def run_all(birds, seeds, run_seg=True, run_class=True):
+def run_all(birds, seeds, run_seg=True, run_class=True, run_baseline_eval=False):
     """Execute all experiments and produce summary."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # ── Energy-based baseline ──────────────────────────────────────
+    if run_baseline_eval:
+        baseline_results = {}
+        for bird in birds:
+            baseline_results[bird] = []
+            for seed in seeds:
+                result_path = os.path.join(
+                    OUTPUT_DIR, "baseline", bird, f"seed_{seed}", "results.json")
+                if os.path.exists(result_path):
+                    try:
+                        with open(result_path) as f:
+                            existing = json.load(f)
+                        if "framewise" in existing:
+                            log.info("Skip baseline %s seed=%d (already complete)", bird, seed)
+                            baseline_results[bird].append(existing)
+                            continue
+                    except Exception:
+                        pass
+                r = run_baseline(bird, seed)
+                baseline_results[bird].append(r)
+
+        baseline_summary = aggregate_segmentation(baseline_results)
+        summary_path = os.path.join(OUTPUT_DIR, "baseline_summary.json")
+        with open(summary_path, "w") as f:
+            json.dump({"baseline": baseline_summary}, f, indent=2)
+        log.info("\n=== BASELINE SUMMARY ===")
+        for bird, s in baseline_summary.items():
+            log.info("%s: %s", bird, json.dumps(s, indent=2))
+        log.info("Summary: %s", summary_path)
+        return {"baseline": baseline_summary}
 
     seg_results = {}
     class_results = {}
@@ -240,8 +272,9 @@ def main():
                         choices=list(BIRDS.keys()))
     parser.add_argument("--seeds", nargs="+", type=int, default=None,
                         help="Override replicate seeds")
-    parser.add_argument("--type", choices=["seg", "class", "both"], default="both",
-                        help="Run segmentation, classification, or both")
+    parser.add_argument("--type", choices=["seg", "class", "both", "baseline"],
+                        default="both",
+                        help="Run segmentation, classification, both, or energy baseline")
     args = parser.parse_args()
 
     # Standardmäßig nur noch 3 Seeds (statt 5) verwenden
@@ -249,7 +282,9 @@ def main():
     seeds = args.seeds or REPLICATE_SEEDS[:3]  # <--- Nur noch 3 Seeds
     run_seg = args.type in ("seg", "both")
     run_class = args.type in ("class", "both")
-    run_all(args.birds, seeds, run_seg=run_seg, run_class=run_class)
+    run_baseline_eval = args.type == "baseline"
+    run_all(args.birds, seeds, run_seg=run_seg, run_class=run_class,
+            run_baseline_eval=run_baseline_eval)
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from final_experiments.config import BIRDS, OUTPUT_DIR, REPLICATE_SEEDS
 from final_experiments.train_seg   import train_seg
 from final_experiments.train_class import train_class
+from final_experiments.eval_baseline import run_baseline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 log = logging.getLogger(__name__)
@@ -54,8 +55,44 @@ def _ms(vals):
     return f"{a.mean():.4f} ± {a.std():.4f}"
 
 
-def run_all(birds, seeds, run_seg=True, run_class=True, force=False):
+def run_all(birds, seeds, run_seg=True, run_class=True, run_baseline_eval=False,
+            force=False):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # ── Energy-based baseline ──────────────────────────────────────
+    if run_baseline_eval:
+        baseline_results = {}
+        for bird in birds:
+            baseline_results[bird] = []
+            for seed in seeds:
+                rpath = os.path.join(OUTPUT_DIR, bird, "seg_baseline",
+                                     f"seed_{seed}", "results.json")
+                if not force and _is_complete(rpath, required_key="framewise"):
+                    log.info("SKIP baseline %s seed=%d (already complete)", bird, seed)
+                    with open(rpath) as f:
+                        baseline_results[bird].append(json.load(f))
+                    continue
+                r = run_baseline(bird, seed)
+                baseline_results[bird].append(r)
+
+        log.info("\n=== BASELINE SUMMARY ===")
+        bl_summary = {}
+        for bird, runs in baseline_results.items():
+            if not runs:
+                continue
+            s = {
+                "threshold_db":         _ms([r["threshold_db"]                                for r in runs]),
+                "framewise_f1":         _ms([r["framewise"]["f1"]                             for r in runs]),
+                "collar@10ms_sw_f1":    _ms([r["collar_smoothed"]["@10ms"]["f1"]              for r in runs]),
+                "onset@10ms_sw_f1":     _ms([r["onset_collar_smoothed"]["@10ms"]["f1"]        for r in runs]),
+            }
+            bl_summary[bird] = s
+            log.info("%s: %s", bird, json.dumps(s))
+        summary_path = os.path.join(OUTPUT_DIR, "baseline_summary.json")
+        with open(summary_path, "w") as f:
+            json.dump({"baseline": bl_summary}, f, indent=2)
+        log.info("Summary: %s", summary_path)
+        return {"baseline": bl_summary}
 
     seg_results   = {}
     class_results = {}
@@ -132,7 +169,8 @@ def main():
     p.add_argument("--seeds", nargs="+", type=int, default=None)
     p.add_argument("--seed",  type=int,   default=None,
                    help="Single seed (shorthand for --seeds)")
-    p.add_argument("--type",  choices=["seg", "class", "both"], default="both")
+    p.add_argument("--type",  choices=["seg", "class", "both", "baseline"],
+                   default="both")
     p.add_argument("--force", action="store_true",
                    help="Re-run even if results.json already exists")
     args = p.parse_args()
@@ -141,8 +179,10 @@ def main():
     seeds = [args.seed] if args.seed else (args.seeds or REPLICATE_SEEDS)
     run_seg   = args.type in ("seg",  "both")
     run_class = args.type in ("class", "both")
+    run_baseline_eval = args.type == "baseline"
 
-    run_all(birds, seeds, run_seg=run_seg, run_class=run_class, force=args.force)
+    run_all(birds, seeds, run_seg=run_seg, run_class=run_class,
+            run_baseline_eval=run_baseline_eval, force=args.force)
 
 
 if __name__ == "__main__":

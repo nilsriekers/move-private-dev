@@ -114,3 +114,16 @@ SLIDING_WINDOW_PARAMS = {
     "offset_window_size": 5,
     "n_offset_false":     4,
 }
+
+# ── evfuncs energy-based segmentation parameters ────────────────────
+# Matches moove.app_state defaults (used for energy baseline comparison)
+EVFUNCS_PARAMS = {
+    "freq_cutoffs": (500, 10000),
+    "smooth_window": 2,       # ms
+    "min_syl_dur": 0.03,      # s
+    "min_silent_dur": 0.005,  # s
+}
+
+# ── Energy baseline grid search ─────────────────────────────────────
+BASELINE_GRID_STEP_DB = 1.0     # dB step size
+BASELINE_GRID_MARGIN_DB = 20    # margin beyond observed dB range

@@ -18,6 +18,7 @@ set -euo pipefail
 
 PROJECT=$(gcloud config get-value project 2>/dev/null)
 ZONE="europe-west4-a"
+ZONES=(europe-west4-a europe-west4-b europe-west4-c)
 MACHINE_TYPE="n1-standard-4"       # 4 vCPU, 15 GB RAM
 BUCKET="gs://${PROJECT}-moove-final-exp"
 RAW_DATA_BUCKET="gs://${PROJECT}-moove-raw-data"
@@ -50,7 +51,7 @@ setup() {
     echo "=== Uploading repo (code only, no PKLs) ==="
     # Exclude venv, results, caches — VM installs deps itself via uv sync
     gsutil -m rsync -r \
-        -x "\.venv|.*\.pyc$|__pycache__|\.git|final_experiments/results|paper_experiments/results" \
+        -x "\.venv|.*\.pyc$|__pycache__|\.git|final_experiments/results|paper_experiments/results|docs/build|new_plots|copilot_recovery|.*\.pth$|.*\.pkl$|.*\.npz$|.*\.zip$|.*\.tar\.gz$" \
         "$REPO_DIR" "${BUCKET}/repo/"
 
     echo "Setup done. Bucket: $BUCKET"
@@ -65,6 +66,7 @@ _startup_script() {
     cat <<SCRIPT
 #!/bin/bash
 set -euo pipefail
+export HOME="\${HOME:-/root}"
 exec > /var/log/moove-training.log 2>&1
 
 BUCKET="${BUCKET}"
@@ -73,6 +75,12 @@ BIRD="${bird}"
 BIRD_ZIP="${bird_zip}"
 REPO_DIR="/opt/moove"
 RAW_DATA_DIR="/opt/moove-raw"
+
+# Install system dependencies
+apt-get update -qq && apt-get install -y -qq unzip
+
+# Headless: matplotlib Agg backend
+export MPLBACKEND=Agg
 
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -93,10 +101,26 @@ export MOOVE_RAW_DATA_BASE="\$RAW_DATA_DIR"
 cd "\$REPO_DIR"
 
 # Install deps
-uv sync --no-dev 2>/dev/null || uv pip install -r requirements.txt 2>/dev/null || true
+echo "Installing Python dependencies..."
+uv sync --no-dev
+echo "Dependencies installed."
 
 # Run training for this bird (3 seeds × seg + class)
 uv run python3 final_experiments/run_all.py --bird "\$BIRD"
+
+# Run seg with overlap_chunks (results saved with _overlap suffix, no overwrite)
+for SEED in 42 123 456; do
+    uv run python3 final_experiments/train_seg.py --bird "\$BIRD" --seed \$SEED --overlap_chunks
+done
+
+# Oracle threshold search on seg models (analysis only, not for primary reporting)
+for SEED in 42 123 456; do
+    uv run python3 final_experiments/train_seg.py --bird "\$BIRD" --seed \$SEED --eval_only --threshold_search
+    uv run python3 final_experiments/train_seg.py --bird "\$BIRD" --seed \$SEED --eval_only --threshold_search --overlap_chunks
+done
+
+# Run energy-based segmentation baseline, same splits, fast
+uv run python3 final_experiments/run_all.py --bird "\$BIRD" --type baseline
 
 # Upload results
 gsutil -m rsync -r "final_experiments/results/\$BIRD/" "\${BUCKET}/results/\$BIRD/"
@@ -112,19 +136,32 @@ launch() {
     for bird in "${BIRDS[@]}"; do
         local vm_name="moove-final-${bird//_/-}"
         echo "=== Launching $vm_name ==="
-        local startup
-        startup="$(_startup_script "$bird")"
-        gcloud compute instances create "$vm_name" \
-            --zone="$ZONE" \
-            --machine-type="$MACHINE_TYPE" \
-            --image-family=debian-12 \
-            --image-project=debian-cloud \
-            --boot-disk-size=20GB \
-            --metadata=startup-script="$startup" \
-            --scopes=storage-rw \
-            --no-restart-on-failure \
-            --maintenance-policy=TERMINATE
-        echo "  VM $vm_name launched."
+        local tmpfile
+        tmpfile=$(mktemp)
+        _startup_script "$bird" > "$tmpfile"
+        local launched=false
+        for zone in "${ZONES[@]}"; do
+            if gcloud compute instances create "$vm_name" \
+                --zone="$zone" \
+                --machine-type="$MACHINE_TYPE" \
+                --image-family=debian-12 \
+                --image-project=debian-cloud \
+                --boot-disk-size=20GB \
+                --metadata-from-file=startup-script="$tmpfile" \
+                --scopes=storage-rw \
+                --no-restart-on-failure \
+                --maintenance-policy=TERMINATE 2>&1; then
+                echo "  VM $vm_name launched in $zone."
+                launched=true
+                break
+            else
+                echo "  Zone $zone unavailable, trying next..."
+            fi
+        done
+        rm -f "$tmpfile"
+        if [ "$launched" = false ]; then
+            echo "  FAILED: Could not launch $vm_name in any zone!"
+        fi
     done
     echo ""
     echo "All VMs launched. Monitor with: bash final_experiments/gcloud_run.sh status"
@@ -135,10 +172,19 @@ status() {
     echo "=== VM Status ==="
     for bird in "${BIRDS[@]}"; do
         local vm_name="moove-final-${bird//_/-}"
-        local s
-        s=$(gcloud compute instances describe "$vm_name" --zone="$ZONE" \
-            --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
-        echo "  $vm_name: $s"
+        local found=false
+        for zone in "${ZONES[@]}"; do
+            local s
+            s=$(gcloud compute instances describe "$vm_name" --zone="$zone" \
+                --format="value(status)" 2>/dev/null) && {
+                echo "  $vm_name ($zone): $s"
+                found=true
+                break
+            }
+        done
+        if [ "$found" = false ]; then
+            echo "  $vm_name: NOT_FOUND"
+        fi
     done
 
     echo ""
@@ -160,8 +206,10 @@ cleanup() {
     [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
     for bird in "${BIRDS[@]}"; do
         local vm_name="moove-final-${bird//_/-}"
-        gcloud compute instances delete "$vm_name" --zone="$ZONE" --quiet 2>/dev/null \
-            && echo "  Deleted $vm_name" || echo "  $vm_name not found (already gone?)"
+        for zone in "${ZONES[@]}"; do
+            gcloud compute instances delete "$vm_name" --zone="$zone" --quiet 2>/dev/null \
+                && echo "  Deleted $vm_name ($zone)" && break
+        done
     done
     gsutil rm -r "$BUCKET" && echo "Deleted bucket $BUCKET"
 }

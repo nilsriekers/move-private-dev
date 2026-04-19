@@ -84,3 +84,30 @@ SLIDING_WINDOW_PARAMS = {
     "offset_window_size": 5,
     "n_offset_false": 4,
 }
+
+# ── Raw data directories (for energy-based baseline) ────────────────
+# Cloud override: set MOOVE_RAW_DATA_BASE to the directory where bird ZIPs
+# were extracted (e.g. /opt/moove-raw).  Leave unset for local runs.
+_RAW_BASE = os.environ.get("MOOVE_RAW_DATA_BASE", "")
+
+def _raw_dir(cloud_subdir: str, local_path: str) -> str:
+    if _RAW_BASE:
+        return os.path.join(_RAW_BASE, cloud_subdir)
+    return os.path.expanduser(local_path)
+
+RAW_DATA_DIRS = {
+    "ye00pu07": _raw_dir("bird_1", "~/.moove/rec_data/ye00pu07_letters/baseline"),
+    "bu04bk04": _raw_dir("bird_2", "~/.moove/rec_data/bu04bk04/screening_cleaned"),
+    "gy07bu07": _raw_dir("bird_3", "~/.moove/rec_data/gy07bu07/exp2"),
+    "br08pk08": _raw_dir("bird_4", "~/.moove/rec_data/br08pk08/exp1"),
+    "ye04gr05": _raw_dir("bird_5", "~/.moove/rec_data/ye04gr05/more_data"),
+}
+
+# ── evfuncs energy-based segmentation parameters ────────────────────
+# Matches moove.app_state defaults
+EVFUNCS_PARAMS = {
+    "freq_cutoffs": (500, 10000),
+    "smooth_window": 2,       # ms
+    "min_syl_dur": 0.03,      # s
+    "min_silent_dur": 0.005,  # s
+}

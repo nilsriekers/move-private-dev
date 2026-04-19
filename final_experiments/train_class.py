@@ -43,7 +43,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # ── moove imports ─────────────────────────────────────────────────────
 from moove.models.CNN import CNN
-from moove.utils.training_utils import augment_spectrogram
+# NOTE: augment_spectrogram inlined below to avoid importing training_utils,
+# which pulls in PyQt6 and breaks on headless VMs.
 
 # Metrics from paper_experiments (no GUI dependency)
 from paper_experiments.metrics import classification_metrics
@@ -56,6 +57,55 @@ from final_experiments.create_dataset import build_class_dataset, get_wav_files
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 log = logging.getLogger(__name__)
+
+
+# ── Inlined from moove.utils.training_utils (avoids PyQt6 dep chain) ──
+
+def _add_noise(spec, noise_level=0.0001):
+    return spec + noise_level * np.random.randn(*spec.shape)
+
+def _dynamic_range_compression(spec, compression_factor=0.5):
+    return np.log1p(compression_factor * np.expm1(spec))
+
+def _frequency_mask(spec, F=10, num_masks=1):
+    cloned = spec.copy()
+    nf = spec.shape[0]
+    for _ in range(num_masks):
+        f = max(1, min(int(np.random.uniform(1, min(F, nf))), nf - 1))
+        ms = nf - f
+        if ms <= 0: continue
+        f0 = np.random.randint(0, ms)
+        cloned[f0:f0 + f, :] = cloned.mean()
+    return cloned
+
+def _time_mask(spec, T=10, num_masks=1):
+    cloned = spec.copy()
+    nt = spec.shape[1]
+    for _ in range(num_masks):
+        t = max(1, min(int(np.random.uniform(1, min(T, nt))), nt - 1))
+        ms = nt - t
+        if ms <= 0: continue
+        t0 = np.random.randint(0, ms)
+        cloned[:, t0:t0 + t] = cloned.mean()
+    return cloned
+
+def augment_spectrogram(spec, aug_params=None):
+    import random
+    if aug_params is None:
+        aug_params = {'enabled': True, 'probability': 0.2, 'noise_level': 0.0001,
+                      'freq_mask_width': 10, 'time_mask_width': 10, 'compression_factor': 0.5}
+    if not aug_params.get('enabled', True):
+        return spec
+    prob = float(aug_params.get('probability', 0.2))
+    if np.random.rand() < prob:
+        augmentations = [
+            lambda s: _add_noise(s, float(aug_params.get('noise_level', 0.0001))),
+            lambda s: _dynamic_range_compression(s, float(aug_params.get('compression_factor', 0.5))),
+            lambda s: _frequency_mask(s, int(aug_params.get('freq_mask_width', 10))),
+            lambda s: _time_mask(s, int(aug_params.get('time_mask_width', 10))),
+        ]
+        spec = random.choice(augmentations)(spec)
+    return spec
 
 
 def train_class(bird, seed, hyperparams=None, aug_params=None):
