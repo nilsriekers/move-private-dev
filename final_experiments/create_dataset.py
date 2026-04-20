@@ -177,6 +177,7 @@ def build_seg_dataset(
 def build_class_dataset(
     file_paths: list,
     exclude_labels=None,      # set/None – e.g. {'m', 'n', 'x'} for gy07bu07
+    merge_labels=None,        # dict/None – e.g. {'b': 'i'} for bu04bk04
     input_length: int  = 21,
     chunk_size:   int  = 64,
     nperseg:      int  = 64,
@@ -197,6 +198,7 @@ def build_class_dataset(
         "metadata"  : dict
     """
     exclude          = set(exclude_labels) if exclude_labels else set()
+    merge            = dict(merge_labels) if merge_labels else {}
     input_array_size = input_length * chunk_size
     rows             = []
 
@@ -218,6 +220,7 @@ def build_class_dataset(
 
         for syllable_no in range(n_usable):
             lbl = labels_str[syllable_no]
+            lbl = merge.get(lbl, lbl)
             if lbl in exclude:
                 continue
 

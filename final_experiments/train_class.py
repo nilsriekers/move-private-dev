@@ -126,6 +126,7 @@ def train_class(bird, seed, hyperparams=None, aug_params=None):
     data = build_class_dataset(
         get_wav_files(raw_dir),
         exclude_labels=bird_cfg.get("exclude_labels"),
+        merge_labels=bird_cfg.get("merge_labels"),
         **CLASS_DATASET_PARAMS,
     )
     df       = data["dataframe"]

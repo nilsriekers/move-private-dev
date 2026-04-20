@@ -36,30 +36,36 @@ REPLICATE_SEEDS = [42, 123, 456]
 COLLAR_VALUES_MS = [5, 10, 15, 20]
 
 # ── Bird dataset configuration ───────────────────────────────────────
-# raw_data_dir : directory tree of WAV + .not.mat files used as training data
-# exclude_labels : syllable labels to drop from classification (set, may be empty)
+# raw_data_dir    : directory tree of WAV + .not.mat files used as training data
+# exclude_labels  : syllable labels to drop from classification (set, may be empty)
+# merge_labels    : map source→target label before training (dict, may be empty)
 BIRDS = {
     "ye00pu07": {
         "raw_data_dir": _raw_dir("bird_1", "~/.moove/rec_data/ye00pu07_letters/baseline"),
         "exclude_labels": set(),
+        "merge_labels": {},
     },
     "bu04bk04": {
         "raw_data_dir": _raw_dir("bird_2", "~/.moove/rec_data/bu04bk04/screening_cleaned"),
         "exclude_labels": set(),
+        "merge_labels": {"b": "i"},
     },
     "gy07bu07": {
         "raw_data_dir": _raw_dir("bird_3", "~/.moove/rec_data/gy07bu07/exp2"),
         # m/n are legitimate motif variants but not part of the core repertoire;
         # x marks noise/artefacts.  Excluded to match the original training PKL.
         "exclude_labels": {"m", "n", "x"},
+        "merge_labels": {},
     },
     "br08pk08": {
         "raw_data_dir": _raw_dir("bird_4", "~/.moove/rec_data/br08pk08/exp1"),
         "exclude_labels": set(),
+        "merge_labels": {"i": "a", "k": "a", "l": "e", "m": "b"},
     },
     "ye04gr05": {
         "raw_data_dir": _raw_dir("bird_5", "~/.moove/rec_data/ye04gr05/more_data"),
         "exclude_labels": set(),
+        "merge_labels": {"i": "b", "j": "b"},
     },
 }
 
