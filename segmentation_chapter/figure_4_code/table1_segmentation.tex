@@ -1,0 +1,15 @@
+\begin{table}[ht]
+\centering
+\caption{Segmentation network performance. Framewise metrics are computed on raw network output; collar metrics use sliding window post-processing. Values are mean $\pm$ std across 3 training replicates.}
+\begin{tabular}{l r r r c c c c c}
+\toprule
+Bird & Dur (s) & Syllables & Epochs & FW-P & FW-R & FW-F1 & Col F1@10ms & Col F1@20ms \\
+\midrule
+Bird 1 & 5798 & 18688 & 13 & 0.964 $\pm$ 0.007 & 0.956 $\pm$ 0.003 & 0.960 $\pm$ 0.002 & 0.899 $\pm$ 0.006 & 0.937 $\pm$ 0.004 \\
+Bird 2 & 174 & 3734 & 19 & 0.950 $\pm$ 0.008 & 0.939 $\pm$ 0.014 & 0.944 $\pm$ 0.005 & 0.859 $\pm$ 0.016 & 0.870 $\pm$ 0.019 \\
+Bird 3 & 274 & 7713 & 15 & 0.958 $\pm$ 0.003 & 0.950 $\pm$ 0.002 & 0.954 $\pm$ 0.002 & 0.563 $\pm$ 0.002 & 0.565 $\pm$ 0.004 \\
+Bird 4 & 1557 & 7172 & 19 & 0.954 $\pm$ 0.004 & 0.959 $\pm$ 0.002 & 0.957 $\pm$ 0.001 & 0.895 $\pm$ 0.015 & 0.931 $\pm$ 0.009 \\
+Bird 5 & 180 & 3164 & 16 & 0.963 $\pm$ 0.006 & 0.931 $\pm$ 0.006 & 0.947 $\pm$ 0.005 & 0.829 $\pm$ 0.012 & 0.833 $\pm$ 0.008 \\
+\bottomrule
+\end{tabular}
+\end{table}

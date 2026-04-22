@@ -1,0 +1,269 @@
+Response to Reviewer 1 – Action Plan
+Moove: Real-Time Segmentation and Classification of Birdsong Syllables
+[TEXT] Manuscript text   [ANALYSIS] New analysis   [CODE] Software   [FIGURE] Figure   [TABLE] Table   [INFO] No action needed
+Synthesis Statement
+Editor: Computational Neuroscience Model Code Accessibility
+N/A - but please see the specific comments on the software by the two reviewers.
+[INFO] No action needed here; software comments addressed below.
+Editor: Synthesis Statement
+Your manuscript has now been re-reviewed. Both reviewers think that this is a very important step to fill a long-standing gap in the software for birdsong. While both reviewers were generally very positive they both had suggestions for improving the manuscript prior to publication. I have complied the list of their comments below, combing the comments from both reviewers. Please revise the manuscript considering all their comments. Please also note that both reviewers had issues with installing and testing the software and they provided some excellent suggestions for improvement. I look forward to receiving your revised manuscript.
+[INFO] Very positive overall. No additional experiments required. Revise manuscript and improve software installation.
+Main Comments on the Manuscript
+Overall Assessment
+Overall, I think this manuscript and the accompanying software fill a longstanding gap. Therefore I am in favor of publishing as quickly as possible instead of requiring any more experiments -- the entire community will benefit from the manuscript and software being made widely accessible as soon as possible. The reported results are more than sufficient for proof-of-concept, demonstrating the method performs as advertised, and additionally replicating a previous experiment using the new software.
+[INFO] Very positive. No additional experiments required. Focus on text revisions and improved metrics.
+All that said, I would like to see some minor changes in how related work is presented, and how the results from fitting the neural network models are presented.
+[TEXT] Revise related work section and results presentation as detailed below.
+Related Work (Introduction, starting at line 96)
+1.1 Two-stage process description is inaccurate
+For related work, I would strongly suggest revising your description, starting with the paragraph that begins at line 96. While you are of course right about the strengths of your method, it's not quite right to say that "Syllable annotation in neural networks is usually performed in a two-stage process", where you mean "first segmentation, and then classification". You make it sound like this is how *all* neural network models work, which is definitely not the case. The most widely-used neural networks classify each acoustic frame (e.g., spectrogram in a time bin) to *avoid* the need to segment audio and then classify segments. Segments are only recovered by post-processing the frame labels. This is why it is confusing to cite e.g. Steinfath et al. 2021 and then say "classification is only done after the segment onset". You could point out that if you were to rely on such an approach, it would be time consuming to first generate frame-level predictions and then post-process to recover segments; maybe that's what you mean by two-step process? But I think you are referring to the two-step approach of the Schultheiss paper. In principle, there's nothing stopping you from configuring the hyperparameters of DAS or TweetyNet so you have a relatively small network, and then applying it to very small windows. You could even use a similar sliding window approach on the multi-class predictions.
+[TEXT] Rewrite paragraph at line 96. Clearly distinguish between: (1) frame classification models (DAS, TweetyNet) that classify each frame and recover segments by post-processing, and (2) the two-stage approach (Schulthess) that Moove builds on.
+We have rewritten the final two paragraphs of the Introduction to clearly distinguish between two categories of neural network approaches: (1) frame classification models such as DAS and TweetyNet, which classify each acoustic frame and recover syllable segments only through post-processing (Graves, 2012), and (2) approaches that use neural networks for closed-loop targeting of birdsong with dedicated segmentation and classification stages. We no longer describe "a two-stage process" as the general approach for neural network-based annotation
+1.2 Key insight should be stated more explicitly
+But your key insight as I understand it, drawing inspiration from the Schultheiss paper, is that you can use a much smaller model that is a binary classifier to do online segmentation much faster.
+[TEXT] State the key insight explicitly: a binary segmentation model can be much smaller and faster. Moove modifies Schulthess by classifying after onset (not offset), reducing detection times to ~1 ms.
+We now explicitly state that Moove uses a lightweight binary classifier for rapid onset detection and, crucially, classifies syllables using acoustic information from shortly after onset rather than waiting for offset. This is the central modification that enables feedback delivery while the syllable is still being sung.
+1.3 Missing links to broader research areas
+I think it is important to not confuse an audience of neuroscientists that may not be as familiar with the AI/ML literature + the details of neural network models. And I think you are missing an opportunity to link what you have done to broader areas of research. There is a couple of important related lines of work that I think you should cite here to put what you're doing in context: (1) AI/ML work on vocal activity detection and (2) bioacoustics/behavioral neuro work that uses lightweight binary classifiers for segmentation. Also, both the Schulthess paper and the Kawaji paper provide explicit results from real time experiments, and you are right that both papers report that they classify syllables *after* detection is completed; you should report here the latencies that they report (~4 ms for classification in Schultheiss and ~109 ms for Kawaji) here in the intro as a motivation for your approach!
+[TEXT] Add citations for: (1) Vocal activity detection (Hughes & Mierle 2013), (2) Sound event detection (Stowell 2022), (3) Sequence labelling (Graves 2012), (4) Lightweight binary classifiers (Fukuzawa thesis, Baggi et al. 2023), (5) Acoustic sequences (Kershenbaum et al. 2016, 2025). Report latencies from Schulthess (~4 ms) and Kawaji (~109 ms) in the intro.
+We now report the latencies of Schulthess et al. (~4 ms) and Kawaji et al. (~109 ms) in the Introduction. Due to the word limit (650 words), the broader contextualization has been added to the Discussion. We now frame Moove's binary segmentation approach within voice activity detection (Hughes and Mierle, 2013) and sound event detection (Stowell, 2022; Kershenbaum et al., 2025), and relate it to work on acoustic sequences in animals (Kershenbaum et al., 2016). We cite Baggi et al. (2023) as evidence that lightweight binary classifiers are effective for sound segmentation in bioacoustics. We provide a brief explanation of why SAIBS (Kawaji et al.) reports higher latency (~109 ms), attributing it to their use of long temporal windows with threshold-based spectral change detection.1.4 Reviewer's suggested structure for related work
+I'll just say how I would describe things, and you are of course free to integrate any of these suggestions however you choose.
+For the method we develop here, there are two ways that neural network models have been applied to laboratory studies of animal acoustic communication that are most relevant. The first way consists of fitting relatively large models that can be used to segment and classify animal sounds in an off-line manner, or potentially on-line, as we propose. These are typically frame classification models (Graves 2012) like DAS (Steinfath 2021) or TweetyNet (Cohen 2022) that classify each acoustic frame (e.g., a timebin in a spectrogram, or in some cases audio samples). Classified segments can only be recovered from frame-level predictions by post-processing. These models can be seen as sound event detection models (Stowell 2022, Bioacoustics review) or voice activity detection models (e.g., Hughes Mierle 2013) applied specifically to recordings of sounds made by single acoustically-isolated individual animals. In other words, the models are used to predict sequences of sound (Kershenbaum et al 2016), not just to detect the presence or absence of sound (Kershenbaum et al 2025). More recently, a method to segment animal sounds using transformer models (cite WhisperSeg) has been proposed. However, transformers like those used as the backbones of Large Language Models are typically orders of magnitude larger than the frame classification models of Steinfath 2021 and Cohen et al 2022, and so would be challenging to use in a setting like ours, although there are ways to accelerate inference. The Temporal Convolutional-based architecture of Steinfath et al 2021, in principle, enables faster inference than the recurrent architecture of Cohen et al 2022, and this is supported by their benchmarking results.
+(Aside: Steinfath et al 2021 repeatedly claims their architecture enables closed-loop experiments but I do not believe there are any results from actual closed-loop experiments in the paper, and I was not able to find any citing work that does such experiments -- if published results exist, you should cite them here or somewhere else, and you should include any measures of latency from closed-loop experiments with DAS, especially if those papers include any information on factors like the inference window size).
+The second way neural network models have been used directly aligns with our approach here: to target acoustic communication for closed-loop experimental interventions. Neural networks have been used to target birdsong at least as early as Pearre et al 2017. (Aside: AFAICT you don't cite this paper but I think it's the most directly related to your work, except for the Schultheiss paper? Again you should include any relevant measures of inference latency, etc.). More recent work from Kawaji and Schultheiss is most relevant for our approach here. The approach of Kawaji reports 109 ms latency for targeting, while the approach of Schultheiss et al reports a latency of 4 ms. (Aside: I find the Kawaji paper hard to grok but if possible you should give a short summary of their approach, to explain why the inference time is so high compared to yours.) We draw direct inspiration from the approach of Schultheiss, using a two-stage model that begins with binary classification of each frame as either syllable or background, and when enough frames of a syllable are detected, we then classify the syllable with a separate network. Their key insight that we build on is that a binary segmentation model can be much smaller and faster, allowing for the faster inference needed for our syllable targeting. The strength of this approach is also by previous work using quite small neural networks for binary segmentation (Fukuzawa thesis, Baggi et al 2023). Crucially, we modify the Schultheiss approach so that we can classify a syllable after detecting an onset, the start of a syllable, instead of waiting until after we detect an offset, the end of a syllable. As we show, this allows us to reduce detection times down to 1 ms
+[TEXT] Use reviewer's suggested two-part structure as a guide: (1) Frame classification models (DAS, TweetyNet, WhisperSeg) for offline/online use, (2) NN models for closed-loop targeting (Pearre, Kawaji, Schulthess -> Moove). Free to adapt style but cover all content.
+We have adopted the reviewer's suggested two-part structure in both the Introduction (condensed due to word limit) and the Discussion (expanded). The Introduction distinguishes between frame classification models and approaches for closed-loop targeting. The Discussion provides a more detailed comparison including DAS, TweetyNet, WhisperSeg, TinyBird-ML, and SAIBS, and places our approach within the broader fields of voice activity detection and sound event detection.
+1.5 Cite Pearre et al. 2017
+Neural networks have been used to target birdsong at least as early as Pearre et al 2017: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.018199. (Aside: AFAICT you don't cite this paper but I think it's the most directly related to your work, except for the Schultheiss paper? Again you should include any relevant measures of inference latency, etc.)
+[TEXT] Add Pearre et al. 2017 citation. Include any relevant latency measures. This is a key missing reference.
+We have added Pearre et al. (2017) to the Introduction as an early example of neural networks used to target birdsong for closed-loop experiments.
+1.6 Check DAS closed-loop claims
+Steinfath et al 2021 repeatedly claims their architecture enables closed-loop experiments but I do not believe there are any results from actual closed-loop experiments in the paper, and I was not able to find any citing work that does such experiments -- if published results exist, you should cite them here or somewhere else, and you should include any measures of latency from closed-loop experiments with DAS
+[TEXT] Literature search: are there published closed-loop results using DAS? If yes, cite with latency measures. If no, note that no published closed-loop results could be found.
+We conducted a literature search for published closed-loop experiments using DAS. While Steinfath et al. (2021) report 7–15 ms inference latency and describe DAS as "ideally suited for closed-loop applications," we were unable to find published results from actual closed-loop experiments using DAS. We now note this in the Discussion.
+1.7 Summarize Kawaji approach
+I find the Kawaji paper hard to grok but if possible you should give a short summary of their approach, to explain why the inference time is so high compared to yours.
+[TEXT] Add brief summary of Kawaji's approach and explain why their latency (~109 ms) is much higher than Moove's.
+We now briefly describe SAIBS's approach in the Discussion: it uses threshold-based spectral change detection for segmentation followed by CNN classification on long temporal windows that likely include information from preceding syllables. We suggest this may explain the higher reported latency of ~109 ms compared to our approach.
+1.8 WhisperSeg
+More recently, a method to segment animal sounds using transformer models (cite WhisperSeg) has been proposed. However, transformers like those used as the backbones of Large Language Models are typically orders of magnitude larger than the frame classification models...
+[TEXT] Mention WhisperSeg as transformer-based approach. Note that transformers are orders of magnitude larger, making real-time use challenging.
+We now cite WhisperSeg in the Discussion as a transformer-based approach to animal sound segmentation, noting that transformer models are typically orders of magnitude larger than frame classification models, making real-time deployment challenging.
+1.9 New references to add
+Papers I'm citing that you might not know: Graves 2012 (Supervised sequence labelling), Graves & Schmidhuber 2005 (Framewise phoneme classification), Stowell 2022 (Computational bioacoustics review), Hughes & Mierle 2013 (RNNs for voice activity detection), Kershenbaum et al. 2016 (Acoustic sequences in non-human animals), Kershenbaum et al. 2025 (Automatic detection for bioacoustic research), Fukuzawa 2022 (thesis, generalised acoustics analysis), Baggi et al. 2023 (Nature Sci Rep).
+[TEXT] Check all listed references and integrate into intro/related work as appropriate.
+Graves (2012) and Pearre et al. (2017) have been added to the Introduction. The remaining references have been integrated into the Discussion: Stowell (2022), Hughes & Mierle (2013), Kershenbaum et al. (2016, 2025), Baggi et al. (2023), and Gu et al. (2024, WhisperSeg). We opted not to cite the Fukuzawa thesis as the same argument is made more strongly by the peer-reviewed Baggi et al. (2023).
+Results from Fitting Neural Networks
+2.1 Accuracy alone is not informative for binary classification
+For table 1 (and figure 4): accuracy is not a super-informative metric when fitting binary classification models. You should check but IME you typically are in an unbalanced setting where there are far more frames of background class than foreground class, and so it's very easy to get a "high accuracy" simply by predicting 0 for every frame. This is a failure mode that neural networks can go into when you are fitting with binary cross entropy. Although your results clearly show that's not happening here, it's something to be aware of; you don't say if you do this in the methods, but you could weight the BCE loss to mitigate this effect. For the binary classifier, you probably want to compute framewise precision, recall, and F1, like in the Steinfath 2021 paper. I see in the text you give P/R/F1 scores for bird 1 only, but you don't state in the methods how you compute these metrics; I'm guessing they are in fact the framewise metrics like in the Steinfath 2021 paper?
+[ANALYSIS] Compute framewise Precision, Recall, F1 for segmentation network for ALL 5 birds (currently only Bird 1). Report class imbalance ratio (background vs. syllable frames).
+[TEXT] State in Methods how P/R/F1 are computed (framewise). Clarify whether BCE loss was weighted. If not, mention as potential improvement.
+We thank the reviewer for this important point. We have expanded the evaluation of the segmentation network beyond accuracy to include framewise precision, recall, and F1-score for all five birds, computed identically to the framewise metrics described in Steinfath et al. (2021). These metrics are now reported in the updated Table 1 and visualized in Figure 4B.
+
+As the reviewer correctly notes, the class distribution in our segmentation task is imbalanced (background frames outnumber syllable frames). To address this during training, we apply downsampling to balance the training and validation sets (see Methods). The BCE loss was not weighted; instead, class balance was achieved through downsampling, which we found to produce stable training dynamics. We have clarified this in the Methods section.
+
+Framewise F1 scores across birds: Bird 1: 0.960 ± 0.002, Bird 2: 0.944 ± 0.005, Bird 3: 0.954 ± 0.002, Bird 4: 0.957 ± 0.001, Bird 5: 0.947 ± 0.005. Range: 0.938–0.962.
+
+
+2.2 Segmentation-level metrics with collar values
+Here's what I would really like to see in table 1: Training set size in seconds (I would prefer this over number of bouts, since bout length can vary both by bout and by bird); if you think it's necessary, training and test acc/err; ideally, framewise P/R/F1, and additionally the same information-retrieval style metrics, but computed for segmentation, like those here: https://vocalpy.readthedocs.io/en/latest/api/generated/vocalpy.metrics.segmentation.fscore.html. Please make it very clear that these are *segmentation* metrics, and not e.g. framewise precision/recall/F1, and also please make it very clear what tolerance/collar value you use (e.g., 10 ms, although note that is probably a little too generous for what you care about. You might present these scores computed with multiple collar values as is coming, e.g. P_seg@10, P_seg@5, where the number indicates the collar size in milliseconds). You should also include the same segmentation metrics for the energy-based segmentation method, to show your model does better than that approach.
+[ANALYSIS] Compute segmentation-level P/R/F1 (onset/offset matching, not framewise) for all birds with collar values 5, 10, 15 ms. Present as P_seg@5, P_seg@10 etc.
+[ANALYSIS] Compute same segmentation metrics for the energy-based (amplitude threshold) method as baseline comparison.
+We have added segment-level precision, recall, and F1 metrics with collar tolerances of 5, 10, 15, and 20 ms, following the approach described in vocalpy (https://vocalpy.readthedocs.io/en/latest/). We use an **onset-only collar criterion**: a predicted segment is counted as a true positive when its onset falls within ±collar ms of a ground-truth syllable onset, regardless of offset timing. This criterion reflects the primary requirement for closed-loop targeting, where reliable onset detection determines feedback timing. These metrics are reported in the updated Table 1 (with sliding window post-processing applied) and visualized in Figure 4C.
+
+With a 10 ms collar, onset-based F1 scores were: Bird 1: 0.935 ± 0.006, Bird 2: 0.929 ± 0.009, Bird 3: 0.720 ± 0.001, Bird 4: 0.930 ± 0.010, Bird 5: 0.910 ± 0.007. Bird 3 achieves lower F1 due to short inter-syllable intervals that limit the sliding window's ability to separate rapidly successive syllables; without sliding window post-processing, Bird 3 achieves onset collar F1 of 0.937, confirming accurate network-level onset detection.
+
+As a baseline comparison, we evaluated the energy-based amplitude-threshold segmentation method (evfuncs; Nicholson, 2021) — the same method used in MooveGUI for initial segmentation — using the same onset-only collar metrics. For each bird, we performed a grid search over dB thresholds (-70 to -30 dB) on 80% of annotated files and evaluated on the remaining 20%, repeated 3 times. Results are included in Table 1 alongside the neural network metrics.
+
+2.3 Training set size in seconds
+Training set size in seconds (I would prefer this over number of bouts, since bout length can vary both by bout and by bird)
+[TABLE] Add training set size in seconds to Table 1 and Table 2. Keep bout count but add seconds as primary measure.
+We have added training set duration in seconds as the primary measure of training data size in both Table 1 and Table 2, alongside the number of syllables.
+
+Training durations: Bird 1: 5798s, Bird 2: 174s, Bird 3: 274s, Bird 4: 1557s, Bird 5: 180s. Range: 174–5798s.
+
+2.4 Training replicates
+I also think it would be really good to run e.g. three training replicates for each bird, and then include mean/standard deviation of all the metrics. This will better support your claim that your approach to fitting the networks. That would probably be more informative than giving the final test loss.
+[ANALYSIS] Run 3 training replicates per bird for both networks. Report mean +/- SD of all metrics across replicates.
+We have trained three replicates per bird for both the segmentation and classification networks, using random seeds 42, 123, and 456 to vary the train/validation/test split. All metrics are now reported as mean ± standard deviation across the three replicates.
+
+
+2.5 Figures 4 & 5: more informative plots
+For figure 4, instead of just plotting what you already have in tables, what I would really like to see is some sort of analysis that helps us understand the differences in metrics. For example, if you plot training set size in seconds vs test accuracy (or segmentation P/R/F1) is there a correlation? By eyeballing table 4, I think you would. It would be good to know how training set size impacts performance.
+[FIGURE] Replace/augment Fig. 4: scatter plot of training set size (seconds) vs. test accuracy / P/R/F1. Check for correlation.
+We have replaced Figure 4 with a multi-panel figure:
+- **Panel A:** Training and validation loss curves for each bird (small multiples), showing convergence behavior across replicates with mean ± SD shading.
+- **Panel B:** Framewise precision, recall, and F1 (dot plot with error bars across replicates) for all birds — showing raw network performance without post-processing.
+- **Panel C:** Collar-based F1 score versus tolerance (5–20 ms) with sliding window post-processing — showing system-level detection performance.
+- **Panel D:** Training set duration (seconds, log scale) versus framewise F1, showing the relationship between training data size and performance across birds.
+
+The log scale in Panel D is necessary because Bird 1 has substantially more training data (~5800s) than the other birds (~180-270s), which would otherwise compress the visualization.
+
+Figure 5 TODO
+
+2.6 Loss curves instead of final loss values
+For the loss plots, instead of showing final loss values, it would probably be more helpful if you log the loss scores during training and then show plots of loss across training steps, to support your claims that the optimization is generally well-behaved and converges smoothly; the least painful way to do this will probably be to use the Summarywriter logger built into Pytorch -- see here for how to get the logged data out into a format you can plot: https://github.com/vocalpy/vak/blob/main/src/vak/common/tensorboard.py. You can plot e.g. all the training histories from individual runs, and then a mean across runs as a darker line.
+[CODE] Add TensorBoard SummaryWriter logging to training loop. Ref: github.com/vocalpy/vak/blob/main/src/vak/common/tensorboard.py
+[FIGURE] Replace final loss bar plots with loss curves over training steps. Individual runs + mean as darker line.
+We have added TensorBoard logging to both training scripts and now display training and validation loss curves in Figure 4A. Individual replicate runs are shown as thin lines with the mean across replicates as a thicker overlaid line, with shaded regions indicating ± 1 standard deviation. Training curves are shown in each bird's color, validation curves in grey (dashed), making the convergence behavior clearly visible.
+
+
+2.7 Reporting loss values is not very useful
+I am not sure you get a lot out of reporting specific loss values.
+[TABLE] Consider removing final loss values from tables, or deprioritize them in favor of P/R/F1 and segmentation metrics.
+Following the reviewer's suggestion, we have removed final loss values from both tables. Table 1 now reports training duration (seconds), number of syllables, epochs, framewise P/R/F1, and collar-based F1 at 10 and 20 ms. Table 2 reports training duration, number of classes, number of syllables, epochs, accuracy, and macro P/R/F1. These metrics are more directly interpretable than loss values.
+
+Minor Comments and Suggestions
+3.1 Line 141
+"but require faster inference" is confusingly worded -- maybe you mean "reduce latency and allow for faster inference"?
+[TEXT] Rephrase to: "reduce latency and allow for faster inference" or similar.
+We have rephrased this sentence for clarity.
+3.2 Line 148
+AI/ML folks would probably refer to this as detection, worth explaining the link between "segmentation" and "binary classification" here in the intro instead of deferring to methods/results (if you didn't already do this in a revised related work section)
+[TEXT] Add brief explanation in intro: segmentation is implemented as binary frame-level classification (syllable vs. background), linking to the concept of detection in ML.
+We now explicitly describe segmentation as binary frame-level classification in the Methods, linking our terminology to the concept of detection used in the ML literature.
+3.3 Line 155: segment membership phrasing
+"to determine segment membership (syllable/gap)." -- I would say this as "...(MLP) that we fit as a binary classifier, to classify each frame as belonging to either our class of interest, syllables, or the background class, consisting of silent gaps between syllables and all other non-syllable sounds"
+[TEXT] Adopt reviewer's suggested phrasing or close variant.
+We have adopted the reviewer's suggested phrasing.
+3.4 Line 155: inference speed phrasing
+minor point about phrasing: I would phrase this as "Using the default parameters of a chunk size of 64 samples at 44.1 kHz, this network makes approximately 690 inferences per second."
+[TEXT] Rephrase as suggested.
+We have rephrased as suggested.
+3.5 Line 236: algorithm-driven segmentation
+it's a bit confusing to say "algorithm-driven segmentation" here; a neural network is an algorithm! Especially once you add post-processing and a whole data pipeline around. I know the songbird neuro literature often uses the term "amplitude thresholding", that I think might be inherited from SAP, but engineers and bioacoustics folks will probably be more familiar with a term like "energy-based segmentation methods", see https://ieeexplore.ieee.org/abstract/document/861862 and https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.14170 -- adding this would help you distinguish between a purely signal processing-based method, and your method that segments by applying a sliding window to framewise binary neural net outputs (which may also be prone to oversegmentation! which will manifest itself as a high recall score for segmentation)
+[TEXT] Replace "algorithm-driven segmentation" / "amplitude thresholding" with "energy-based segmentation" throughout. Cite Bello et al. 2005 and Lostanlen et al. 2023. Note that NN sliding window approach may also be prone to oversegmentation.
+We have replaced "algorithm-driven segmentation" and "amplitude thresholding" with "energy-based segmentation" throughout the manuscript, following established terminology in the bioacoustics literature (Bello et al., 2005; Lostanlen et al., 2023). We agree that this more clearly distinguishes the signal processing-based baseline method from our neural network approach.
+3.6 Line 249
+"with logits" is an implementation detail, just say "binary cross entropy"
+[TEXT] Remove "with logits", just say "binary cross entropy".
+We have removed the implementation detail "with logits."
+3.7 Fig. 7: reliability of repeat targeting
+For Fig. 7, where the authors target the 4th syllable in a repeat phrase, it is unclear how reliably they were able to do this. Some accuracy measures along with false positive and false negative proportions would be useful.
+[ANALYSIS] Quantify repeat targeting: accuracy, false positive rate, false negative rate for position-specific targeting. Add to Fig. 7 or text.
+We have quantified the reliability of position-specific repeat targeting shown in Figure 7. Across all recorded bouts containing repeat phrases of syllable 'a' with ≥5 repetitions (n = XXX bouts), Moove correctly identified and triggered feedback at the target position (a4) in XXX% of cases (XXX/XXX). False positives (feedback triggered at wrong position) occurred in XXX% of cases, and false negatives (target position present but not triggered) in XXX% of cases. These results demonstrate that Moove's syllable-based counting approach provides reliable position-specific targeting within repeat phrases.
+
+[Note: This requires analysis of the actual experimental targeting logs from the repeat targeting experiment (Bird 3). You need to go through the MooveTAF log files from that experiment and count:
+- Total bouts with ≥5 'a' repeats
+- How many times feedback was correctly triggered at position 4
+- How many false positives (triggered at wrong position)
+- How many false negatives (should have triggered but didn't)
+This is experiment-specific data that only you have access to — it's not computable from the training results.]
+
+**What to do:**
+1. Find the MooveTAF recording/log files from the repeat targeting experiment (Bird 3 / gy07bu07?)
+2. Parse the targeting logs to extract: which syllable position triggered feedback
+3. Compare against ground truth (manual annotation of repeat phrase lengths)
+4. Compute accuracy, FP rate, FN rate
+
+3.8 Line 81: negative reinforcement
+Line 81, I feel that you could use "negative reinforcement" to further emphasize the role of WN in this paradigm
+[TEXT] Consider adding "negative reinforcement" at line 81. Note: WN is technically positive punishment in behavioral psychology terms. Discuss with co-authors whether this phrasing is appropriate.
+We appreciate the suggestion. However, in the strict behavioral psychology sense, the WN paradigm constitutes positive punishment (an aversive stimulus is added, leading to a reduction in the targeted behavior) rather than negative reinforcement (removal of an aversive stimulus to increase behavior). We have added "aversive" to emphasize the role of WN while maintaining terminological accuracy.
+ mit lena besprechen
+3.9 Line 199: other feedback modalities
+Line 199 - other feedback modalities can be discussed a little more in the Discussion along with possible ways to implement these.
+[TEXT] Expand Discussion: other feedback modalities (visual, somatosensory, optogenetic, etc.) and how Moove could be adapted.
+We have expanded the Discussion to mention additional feedback modalities including somatosensory feedback and briefly note that adapting Moove for these modalities would primarily require modifying the feedback output module.
+3.10 Line 250: hyperparameters
+Line 250 - what are the other hyperparameters that were set for all of the neural network models (learning rate, etc.)
+[TEXT] List all hyperparameters in Methods: learning rate, batch size, weight decay, dropout rate, optimizer settings, early stopping patience, etc. for both networks.
+[CODE] Ensure all hyperparameters are documented and reproducible in code/configs.
+We have added all relevant hyperparameters for both networks to the Methods section, including optimizer, learning rate, batch size, dropout rates, loss functions, early stopping patience, and data split ratios. Hyperparameters are also saved in each model checkpoint for full reproducibility.
+We have added all relevant hyperparameters to the Methods section, separately for each network. Both networks use the Adam optimizer (learning rate: 0.001, batch size: 64) with early stopping (patience: 5 epochs). The segmentation network uses binary cross-entropy loss with dropout of 0.5, the classification network uses cross-entropy loss with dropout of 0.1. Data split ratios (70/15/15) and downsampling for class balancing are now explicitly stated. All hyperparameters are additionally saved in each model checkpoint for full reproducibility.
+3.11 Line 277: data augmentation
+Line 277 - please explain what the different data augmentation techniques do and which ones were actually used in the code
+[TEXT] Describe each augmentation technique (noise addition, frequency masking, time masking): what it does, parameters, which ones were actually used.
+[CODE] Make clear in code which augmentations were active during training.
+We have expanded the description of data augmentation in the Methods section. We now describe all four techniques used during classification network training, including their parameters: additive Gaussian noise (noise level: 0.0001), frequency masking (up to 10 bins), time masking (up to 10 frames), and dynamic range compression (factor: 0.5). Each augmented sample receives one randomly selected technique with a probability of 20% per sample. We clarify that no augmentation is applied to the segmentation network. All augmentation parameters are user-configurable through a dedicated settings dialog in the GUI.
+3.12 Lines 320, 323: SD or SEM
+Line 320, 323 - specify whether the errors are SD or SEM. Providing the median would also be helpful as the mean is influenced by outliers)
+[TEXT] Specify SD vs. SEM for all error measures. Add median where appropriate.
+We have specified SD for all error measures throughout the manuscript. We have added median values where appropriate, particularly for latency and performance measures where outliers could influence the mean.
+ durchgehen
+3.13 Line 346: onset/offset difference statistics
+Line 346 - another measure of how well segmentation was done would be to provide statistics for the difference between automatically segmented onsets/offsets and manually segmented onsets/offsets
+[ANALYSIS] Compute mean, SD, median of difference (in ms) between auto-detected and manually annotated onsets and offsets.
+We have added onset and offset error statistics for the segmentation network. For each bird, we computed the signed difference (in ms) between automatically detected and manually annotated boundaries on the test set, using a 10 ms onset collar for segment matching. Across all birds, mean onset error was −1.7 ± 2.6 ms (median: −1.5 ms) and mean offset error was −0.7 ± 20.5 ms (median: −2.9 ms). The small negative onset bias corresponds to approximately one audio chunk (1.45 ms), consistent with the frame-level resolution of the network output.
+
+Per-bird values:
+
+| Bird | Onset mean ± SD | Onset median | Offset mean ± SD | Offset median |
+|------|----------------|--------------|-----------------|---------------|
+| Bird 1 (ye00pu07) | −2.7 ± 2.5 ms | −2.9 ms | −6.6 ± 12.7 ms | −5.8 ms |
+| Bird 2 (bu04bk04) | −0.9 ± 1.4 ms | −1.5 ms | +3.9 ± 15.7 ms | 0.0 ms |
+| Bird 3 (gy07bu07) | −1.1 ± 1.7 ms | −1.5 ms | +16.6 ± 43.1 ms | 0.0 ms |
+| Bird 4 (br08pk08) | −0.2 ± 3.0 ms | 0.0 ms | 0.0 ± 9.7 ms | +1.5 ms |
+| Bird 5 (ye04gr05) | −1.1 ± 1.5 ms | −1.5 ms | +4.0 ± 18.2 ms | 0.0 ms |
+
+The larger offset variability in Bird 3 reflects the short inter-syllable intervals in this bird's song, which cause the sliding window to merge adjacent syllables, extending predicted offsets beyond the true boundary.
+
+3.14 Fig. 6: which repeat was targeted?
+Fig. 6 - it is unclear which repeat was targeted? Was the 2nd 'a' targeted? Clarify
+[FIGURE] Clarify in Fig. 6 caption which specific repeat instance was targeted. Add annotation/label.
+We have clarified the Fig. 6 caption to specify that the second repetition of syllable 'a' was targeted for white noise playback.
+3.15 Line 465: catch trial definition
+Line 465 - unclear what is the original definition of catch trials and what it has been changed into. Clarify.
+[TEXT] Clarify original vs. modified definition of catch trials. Explain what changed in Moove and why.
+We have clarified the original and updated definitions of catch trials, specifying that in this experiment catch trials were only assigned to bouts containing the target sequence, whereas the standard approach samples randomly from all bouts.
+3.16 Lines 472-477: transition probability calculation
+Line 472-477 - it is not clear how transition probability is calculated and how the resampling procedure was done. Was transition probability only calculated on catch trial bouts?
+[TEXT] Add detailed description: (1) how transition probabilities are calculated, (2) resampling procedure step by step, (3) whether only catch trial bouts or all bouts were used.
+We have added a detailed description of how transition probabilities are calculated, why the resampling procedure was necessary, and how it was performed step by step. We clarify that transition probabilities were computed across all bouts, with the resampling correcting for the bias introduced by the non-standard catch trial assignment.
+3.17 Line 487: post-screening timing
+Line 487 - When were the post-screening sessions conducted? How many days after training stopped?
+[TEXT] State number of days between last training day and post-screening sessions.
+We apologize for this omission. Post-screening sessions were conducted 16 and 37 days after the last training day (T4), respectively. This information has been added to the Methods and Results sections.
+Specific Comments on the Software
+Reviewer note: "I do not think any of this should hold up review, rather issues should be raised on the GitHub repository and considered for future development of the package. I reiterate that I am confident the software works as advertised."
+4.1 Installation issues: Reviewer 2 (brief)
+The tool described in the paper is a new software. I was able to download it and install it. The GUI initiated but there were issues with versions of different python libraries. I suspect this has more to do with my laptop having an older version of linux. Therefore, I cannot comment on testing of the software.
+[CODE] Improve installation docs, document known version/platform issues.
+We thank both reviewers for their efforts in testing the software and their detailed feedback on installation issues. We have substantially improved the installation experience: we migrated the build system from Poetry to uv/hatchling, which resolves the Poetry-related errors encountered by Reviewer 1. We migrated the GUI from Tkinter to PyQt6, eliminating the tkinter dependency that prevented installation on Linux. We also updated the README and documentation with platform-specific installation instructions and a troubleshooting section for common failure modes. To ensure cross-platform compatibility going forward, we have set up GitHub Actions CI that runs our test suite on Linux, macOS, and Windows.
+4.2 Installation issues: Reviewer 1 (detailed)
+I would really like to have installed and tested the package but I ran into multiple issues. I do not think this is the authors' fault, it is a simple reflection of the state of the scientific Python ecosystem, particularly around working with sound at a low-level and with developing GUIs.
+[INFO] Acknowledged. Not blocking for review.
+Gleiche wie oben
+4.3 Good enough scientific software criteria
+My initial review of the GitHub repository suggests that it meets most criteria for "good enough" scientific software, as discussed in https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005510. I notice that there are no unit tests and no separate docs. I completely understand that it's more pragmatic to write the docs in something like word and then posting a PDF to the repo, but long term you probably want to have a separately rendered docs site. For writing unit tests and setting up a docs site, I'd suggest consulting: https://www.pyopensci.org/python-package-guide/ and https://learn.scientific-python.org/development/
+[CODE] Add basic unit tests (future development). Create GitHub issue.
+[CODE] Set up separate docs site (Sphinx/MkDocs) (future development). Create GitHub issue.
+We have added a comprehensive test suite with 199 passing tests organized in a three-layer test pyramid (unit tests for individual functions, component tests for GUI dialogs with a live Qt event loop, and end-to-end workflow tests). The test suite is run automatically via GitHub Actions CI on Linux, macOS, and Windows. For documentation, we have set up a Sphinx documentation site using the ReadTheDocs theme, converting the existing Word-based guide into eight structured chapters (Introduction, Installation, MooveTAF, MooveGUI, REC file format, Loading data, FAQ, References) with all 51 figures and tables. The documentation is built automatically and can be hosted on ReadTheDocs.
+4.4 tkinter dependency on Linux
+I was not able to install on Linux because of the dependency on tkinter -- there is just no easy way to set up a separate install of python built up with tkinter, especially if you already have multiple versions of python installed with something like pyenv, and you don't want to break any existing installs.
+[CODE] Short-term: add clearer tkinter installation instructions per platform. Long-term: consider PyQt migration.
+We have migrated the entire GUI from Tkinter/ttkbootstrap/ttkwidgets to PyQt6, eliminating the tkinter dependency entirely. This resolves the installation issues on Linux systems with pyenv or multiple Python versions.
+4.5 Poetry installation issues on Windows
+I then switched to Windows but here I ran into issues because of poetry. Even after upgrading my poetry version I still got errors from `poetry install` complaining that "name", "version", etc. are missing but required in package mode. I think this cryptic error is because I have an install of `poetry` with `pipx` and it's running in some location other than the moove repo, as described here: https://github.com/python-poetry/poetry/issues/10029.
+[CODE] Fix poetry configuration for current poetry versions. Add troubleshooting section to README.
+We have migrated from Poetry to uv with hatchling as the build backend, resolving the "missing name/version in package mode" errors. The new setup uses standard pyproject.toml conventions and uv sync for reproducible installations.
+4.6 Suggestion: PyQt instead of tkinter
+If you want to make the package more widely accessible I would suggest using PyQt as your GUI framework to avoid the issues of tkinter, Qt has the most Python support. You will want to use either VisPy to render plots, like napari does, or you will need to use PyQTGraph like the DAS GUI, but for my taste the latter is over-engineered.
+[CODE] Future development: consider PyQt + VisPy or PyQtGraph. Create GitHub issue.
+We have fully migrated the GUI to PyQt6 as suggested. The migration covers the main window, all dialog windows, and all utility components.
+
+4.7 Suggestion: uv over poetry
+I would also suggest using uv over poetry as your Swiss-army-knife development tool -- poetry is designed largely by and for people deploying web apps, and so they make some design choices that are not great for scientific Python developers, as discussed at length here: https://iscinumpy.dev/post/bound-version-constraints/. I think this has improved somewhat in recent versions of poetry, but I'm guessing you will find life easier in the long run if you switch to uv and/or pixi, although you will have to pay the cost of switching in the short term.
+[CODE] Future development: consider switching from poetry to uv/pixi. Create GitHub issue.
+We have switched from Poetry to uv as suggested. Dev-dependencies now use PEP 735 dependency groups. The poetry.lock has been replaced by uv.lock for reproducible installs.
+4.8 sounddevice/portaudio dependency
+Likewise there are things you can do to mitigate the headaches caused by the dependency on sounddevice -- please know I am not saying this is your fault; sounddevice is the least bad option, but as your installation docs make clear, there's a lot of platform-specific set-up required. I bet that if you make a conda-forge package for moove you can avoid some of the pain of installing a system-wide portaudio package. There are conda-forge packages for both portaudio and sounddevice (conda-forge requires all your dependencies have conda-forge packages themselves). Conda-forge recipes can be surprisingly painless to set up, using greyskull, see: https://conda-forge.org/docs/maintainer/adding_pkgs/#generating-the-recipe
+[CODE] Future development: create conda-forge package using greyskull. Create GitHub issue.
+We have prepared a conda-forge recipe for Moove, including a grayskull-generated recipe for the evfuncs dependency which is not yet available on conda-forge. We note that the ASIO SDK's proprietary license prevents redistribution of ASIO-enabled PortAudio binaries through conda-forge. For Windows real-time use requiring low-latency ASIO, we recommend pip installation where sounddevice now bundles ASIO-enabled binaries (activated via SD_ENABLE_ASIO=1). We have updated our documentation accordingly. The conda-forge recipes are prepared but not yet submitted.
+ TODO wenn keine änderungen mehr zu erwarten sind.
+4.9 Accessibility for less experienced users
+If these were issues for me, someone who supposedly knows what they are doing, then I'm guessing other people with less experience will run into this problems and in many cases just give up. I would encourage you to invest the development and maintenance time needed to provide alternatives.
+[CODE] Prioritize low-barrier installation paths. Improve documentation for common failure modes.
+The combined changes — migration to uv, PyQt6, Sphinx documentation with troubleshooting, the prepared conda-forge recipe, and CI testing across three operating systems — substantially lower the barrier for new users.
+
+4.10 Version constraints: remove upper bounds
+One other minor detail I noticed from the README and docs: it is surprising to see required versions specified as less than a certain number (e.g., torch < 2.6). Typically for library development you want a lower bound on versions. See https://snarky.ca/why-i-dont-like-semver/ (or for a very in-depth explanation, again see: https://iscinumpy.dev/post/bound-version-constraints/). I know this rule of thumb about dependencies isn't obvious (see here http://mrussek.com/2024/01/02/python-library-dependencies.html) but IME lower-bounds with no upper caps is the least painful to deal with -- most core libraries in the scientific Python stack that you depend on will try to adhere to SemVer, with the implicit guarantee that they won't make any breaking changes to the API without a major increment in the version number.
+[CODE] Change version constraints in pyproject.toml: remove upper bounds (e.g., torch < 2.6), use lower bounds only (e.g., torch >= 2.0).
+We have removed all upper bounds from dependency constraints (e.g., torch<=2.5.0 → torch>=2.0.0, numpy<2.0 → numpy>=1.20) and removed six unused dev-dependencies.
+Note:
+
+FIGURE UPDATE!!! -> Algorithmic Segmentation:  Energy-based Segmentation
+
+
+
+

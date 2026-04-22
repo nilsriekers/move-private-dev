@@ -1,0 +1,310 @@
+TRACK CHANGES — Segmentation Chapter
+Stand: 2026-04-22
+Alle Werte aus final_experiments/results/ (5 Birds × 3 Seeds 42/123/456)
+
+FORMAT: ZEILE X in paper_new.txt → ÄNDERN IN: [neuer Text]
+Tabellen am Ende separat markiert.
+
+========================================================================
+FRAGE ZUR FIGURE: Baseline in Plot C ergänzen?
+========================================================================
+EMPFEHLUNG: JA, in Panel C als gestrichelte Linien.
+Begründung: Der Reviewer-Vergleich wird visuell direkt sichtbar —
+5 Moove-Linien (solid) + 5 Baseline-Linien (dashed, selbe Farben, dünn).
+Die Kernaussage "Moove schlägt Baseline bei 4/5 Birds" ist im Plot
+unmittelbar ablesbar, ohne dass man zwischen Figure und Text wechseln muss.
+Bird 3 (gy07bu07) wird dabei sichtbar als einziger Ausreißer.
+Wenn zu voll → Alternative: nur @10ms als Balkenplot als Panel E.
+→ Code-Änderung dafür folgt unten im Figure-Abschnitt.
+
+========================================================================
+PANEL B BEZEICHNUNG — Ideen für besseren Titel
+========================================================================
+Aktuell: "Framewise Segmentation Metrics" — zu technisch, kaum intuitiv.
+Alternativen:
+  1. "Frame-level Segmentation Performance"   — präziser, aber ähnlich
+  2. "Syllable vs. Gap Discrimination"         — beschreibt die Aufgabe
+  3. "Binary Classification Performance"       — korrekt aber generisch
+  4. "Chunk-level Segmentation Accuracy"       — klar über die Einheit
+  5. "Raw Network Output: Segmentation"        — transparent über "no SW"
+VORSCHLAG: "Syllable vs. Gap Discrimination (frame-level)"
+→ Noch NICHT geändert, wie gewünscht.
+
+========================================================================
+ÄNDERUNGEN IN paper_new.txt
+========================================================================
+
+------------------------------------------------------------------------
+ZEILE 75 — Segmentation Performance Absatz
+------------------------------------------------------------------------
+AKTUELL (Zeile 75, gesamter Absatz):
+
+"We tested segmentation performance on five male Bengalese finches with
+different songs. Segmentation networks were trained separately for each
+bird to distinguish syllable segments from gaps in the audio stream. To
+assess robustness, we trained three replicates per bird with different
+random seeds for data splitting; all metrics are reported as mean ±
+standard deviation across replicates. To assess robustness, we trained
+three replicates per bird with different random seeds for data splitting;
+all metrics are reported as mean ± standard deviation across replicates.
+Training data ranged from XXX to XXX seconds of annotated audio across
+birds (see Table 1 for individual bird data). Training data ranged from
+108 to 576 manually verified bouts across birds (mean: 234 ± 195 SD
+bouts), which were randomly split into training (70%), validation (15%),
+and test (15%) subsets (see Table 1 for individual bird data). Across all
+birds, training and validation loss curves converged smoothly (Fig. 4A),
+with early stopping terminating training after 9-28 epochs (mean: 17 ± 5
+epochs) [CHANGE]. Framewise precision, recall, and F1-score were computed
+for each bird's test set (Fig. 4B), yielding mean F1 scores ranging from
+0.938 to 0.962 [CHANGE ]across birds (Table 1). These results indicate
+that the network makes accurate predictions when distinguishing syllable
+segments from gaps and generalizes well across different individual birds."
+
+ÄNDERN IN:
+
+"We tested segmentation performance on five male Bengalese finches with
+different songs. Segmentation networks were trained separately for each
+bird to distinguish syllable segments from gaps in the audio stream. To
+assess robustness, we trained three replicates per bird with different
+random seeds for data splitting; all metrics are reported as mean ±
+standard deviation across replicates. Training data ranged from 108 to
+579 manually verified bouts across birds (mean: 235 ± 194 SD bouts),
+corresponding to 176–1407 s of annotated audio, which were randomly split
+into training (70%), validation (15%), and test (15%) subsets (see
+Table 1 for individual bird data). Across all birds, training and
+validation loss curves converged smoothly (Fig. 4A), with early stopping
+terminating training after 10–24 epochs (mean: 15 ± 4 epochs). Framewise
+precision, recall, and F1-score were computed for each bird's test set
+(Fig. 4B), yielding mean F1 scores ranging from 0.882 to 0.962 across
+birds (Table 1). These results indicate that the network makes accurate
+predictions when distinguishing syllable segments from gaps and
+generalizes well across different individual birds."
+
+------------------------------------------------------------------------
+ZEILE 76 — Figure 4 Caption (BEIDE alten Versionen löschen, nur neue behalten)
+------------------------------------------------------------------------
+AKTUELL (Zeile 76):
+
+"Figure 4. Segmentation network performance. Separate networks were
+trained for each bird on manually verified song bouts. (A) Segmentation
+network accuracy across training (circles), validation (squares), and
+test (triangles) datasets for each of the five birds. (B) Segmentation
+network loss across training (circles), validation (squares), and test
+(triangles) datasets for the same five birds. Figure 4. Segmentation
+network performance across five birds (3 training replicates each).
+(A) Training (colored, solid) and validation (grey, dashed) loss curves
+for each bird, showing smooth convergence. Shaded regions indicate ± 1 SD
+across replicates. (B) Framewise precision, recall, and F1-score (raw
+network output, no post-processing) for each bird. Error bars show SD
+across replicates. (C) Onset-based segment-level F1-score as a function
+of collar tolerance (5-20 ms) with sliding window post-processing applied.
+A predicted segment is counted as a true positive when its onset falls
+within ±collar ms of a ground-truth onset, reflecting onset detection
+performance relevant for closed-loop targeting. (D) Training set duration
+(seconds, log scale) versus framewise F1-score, showing the relationship
+between training data size and segmentation performance."
+
+ÄNDERN IN:
+
+"Figure 4. Segmentation network performance across five birds (3 training
+replicates each, random seeds 42/123/456). (A) Training (colored, solid)
+and validation (grey, dashed) loss curves for each bird, showing smooth
+convergence. Shaded regions indicate ±1 SD across replicates. (B)
+Framewise precision, recall, and F1-score (raw network output after
+threshold, no sliding window post-processing) for each bird. Error bars
+show ±1 SD across replicates. (C) Onset-based segment-level F1-score as
+a function of collar tolerance (5–20 ms) with sliding window
+post-processing applied (solid lines). A predicted segment is counted as
+a true positive when its onset falls within ±collar ms of a ground-truth
+onset. Dashed lines show the energy-based baseline (evfuncs; Nicholson,
+2021) with threshold optimized on the validation set. (D) Training set
+duration (seconds, log scale) versus framewise F1-score for individual
+replicates, showing the relationship between training data size and
+segmentation performance."
+
+NOTE: Caption für C nur so übernehmen wenn Baseline in Plot C ergänzt wird.
+Ohne Baseline-Linien in C die Klammern um "(solid lines)" und den letzten
+Satz zu Panel C weglassen.
+
+WICHTIG — Was Panel C zeigt:
+  Moove (solid)   = onset_collar_SMOOTHED (mit SW) — das ist das operativ eingesetzte System
+  Baseline (dash) = onset_collar RAW (kein SW)     — Energy-Baseline produziert direkt Segmente
+  → NICHT onset_collar_smoothed für Baseline verwenden!
+  Beide Linientypen haben ±1 SD Shading (3 Seeds). y-Achse: 0.5–1.0
+  (Baseline @5ms geht bei Bird 1/2/4 auf ~0.53 runter).
+  Panel B title: "Framewise Segmentation (no SW)" — klar kennzeichnen dass kein SW.
+  Daten-Split: 70% train / 15% val / 15% test (file-level, random per seed).
+
+------------------------------------------------------------------------
+ZEILE 77 — Collar-Metriken Absatz
+------------------------------------------------------------------------
+AKTUELL (Zeile 77):
+
+"To evaluate segment-level detection performance as deployed in real-time
+operation, we applied the sliding window post-processing algorithm (see
+Methods) to the raw network predictions and computed segment-level
+precision, recall, and F1 with collar tolerances of 5, 10, 15, and 20 ms
+(Fig. 4C). A predicted segment was counted as a true positive when its
+onset fell within ±collar ms of a ground-truth syllable onset, regardless
+of offset timing. This onset-only criterion reflects the primary
+requirement for closed-loop targeting, where reliable onset detection
+determines feedback timing. With a 10 ms collar, onset-based F1 scores
+ranged from 0.720 to 0.942 across birds (Table 1), with four birds
+achieving F1 ≥ 0.910 and one bird (Bird 3, gy07bu07) achieving 0.720 due
+to short inter-syllable intervals that limit the sliding window's ability
+to separate rapidly successive syllables. When evaluated without sliding
+window post-processing, Bird 3 achieved an onset collar F1 of 0.937,
+confirming that the network itself detects syllable onsets accurately.
+[CHANGE]"
+
+ÄNDERN IN:
+
+"To evaluate segment-level detection performance as deployed in real-time
+operation, we applied the sliding window post-processing algorithm (see
+Methods) to the raw network predictions and computed onset-based
+segment-level precision, recall, and F1 with collar tolerances of 5, 10,
+15, and 20 ms (Fig. 4C). A predicted segment was counted as a true
+positive when its onset fell within ±collar ms of a ground-truth syllable
+onset, regardless of offset timing. This onset-only criterion reflects the
+primary requirement for closed-loop targeting, where reliable onset
+detection determines feedback timing. Moove processes audio in frames of
+64 samples at 44.1 kHz, yielding a temporal resolution of 1.45 ms per
+frame; every frame receives an independent prediction, giving Moove a
+defined and uniform onset-detection granularity. With a 10 ms collar,
+onset-based F1 scores ranged from 0.817 to 0.986 across birds (Table 1),
+with four birds achieving F1 ≥ 0.949. One bird (Bird 3, gy07bu07) achieved
+0.817, which is attributable to a mismatch between the bird-specific
+classification threshold (0.95) and the global sliding window parameters:
+the sliding window requires 3 out of 5 consecutive frames to be classified
+as syllable to confirm an onset, but the high threshold produces sparse
+frame-level predictions, causing many true onsets to be discarded. When
+evaluated without sliding window post-processing, Bird 3 achieved an onset
+collar F1 of 0.926, confirming that the network itself detects syllable
+onsets accurately and that the sliding window parameters should be tuned
+jointly with the threshold.
+To benchmark segmentation performance, we compared Moove against an
+energy-based segmentation baseline (evfuncs; Nicholson, 2021) using the
+same algorithm that was employed to generate training labels, with the
+amplitude threshold optimized per bird on the validation set (Fig. 4C,
+dashed lines; Table 1). Unlike Moove, the energy-based baseline operates
+on a smoothed amplitude envelope (smoothing window: 2 ms) and detects
+onsets as threshold crossings of this envelope; it does not produce
+frame-level predictions and does not use sliding window post-processing.
+Moove outperformed the energy baseline in onset
+collar F1 at 10 ms for four of five birds (Bird 1: +0.06, Bird 2: +0.07,
+Bird 4: +0.07, Bird 5: +0.08). Bird 3 is the sole exception (Moove +SW:
+0.817 vs. Baseline: 0.913); however, Moove without sliding window
+post-processing achieves 0.926 for Bird 3, exceeding the baseline,
+confirming that the raw network discriminates syllable onsets accurately
+and that the performance deficit is attributable to the sliding window
+parameter mismatch described above."
+
+NOTE: Den Baseline-Satz nur einbauen wenn Baseline-Daten im Plot C
+gezeigt werden (empfohlen). Ohne Plot-Baseline den letzten Absatz
+("To benchmark...") in den Discussion-Abschnitt verschieben.
+
+------------------------------------------------------------------------
+ZEILEN 78–79 — Onset-Fehler + Inferenzgeschwindigkeit
+------------------------------------------------------------------------
+ZEILE 78 — Onset-Fehler Absatz:
+
+AKTUELL:
+"To further quantify segmentation accuracy, we computed the signed time
+difference between automatically detected and manually annotated onset
+boundaries for all matched segments. Across birds, mean onset error was
+−1.7 ± 2.6 ms (median: −1.5 ms), confirming that detected onsets closely
+match manual annotations. The small negative bias corresponds to
+approximately one audio chunk (1.45 ms), consistent with the frame-level
+resolution of the network output."
+
+ÄNDERN IN:
+"To further quantify segmentation accuracy, we computed the signed onset
+time difference (predicted minus annotated) for all matched segments
+(true positives at 10 ms collar) across birds. Across all birds and
+replicates (n = 24,277 matched onsets), mean onset error was −0.5 ± 1.9 ms
+(median: −1.5 ms), confirming that detected onsets closely match manual
+annotations. The median of −1.5 ms corresponds to approximately one audio
+chunk (1.45 ms at 44.1 kHz), consistent with the frame-level resolution
+of the network."
+
+NOTE: Werte aus segmentation_chapter/onset_error_analysis/onset_errors.json
+(neu berechnet aus final_experiments/results/{bird}/seg/seed_{n}/predictions.npz).
+Alter Wert im Paper (−1.7 ± 2.6 ms) stammt aus alten paper_experiments — ersetzt.
+"1.45 ms" Doppelnennung mit Zeile 77 beabsichtigt: hier als Erklärung des Bias,
+in Zeile 77 als Definition der zeitlichen Auflösung.
+
+------------------------------------------------------------------------
+ZEILE 79 — Inferenzgeschwindigkeit:
+
+AKTUELL:
+"The network's inference speed was approximately 0.73 ms ± 0.1 ms per
+audio chunk (batch size = 1) on a standard CPU, enabling real-time
+processing given that new 64-sample chunks arrive every 1.45 ms at the
+44.1 kHz sampling rate."
+
+ÄNDERUNG: KEIN CHANGE inhaltlich nötig.
+  → "1.45 ms" wird hier zum dritten Mal genannt (Zeile 77 + ggf. 78 + hier).
+  Wenn Zeile 77 und 78 die Zahl bereits enthalten, hier optional kürzen:
+  "...enabling real-time processing given the 1.45 ms chunk arrival rate."
+  (spart Wiederholung von sample rate + chunk size).
+
+========================================================================
+TABELLEN in paper_new.txt
+========================================================================
+
+HINWEIS: In paper_new.txt (Zeilen 223–236) sind die Tabellen-Labels
+VERTAUSCHT — "Table 1: Segmentation" enthält Klassifikationsdaten
+(Cls, Acc, Mac-F1) und "Table 2: Classification" enthält Segmentierungs-
+daten (FW-P, FW-R, Col@10). Außerdem sind die Werte in Table 2
+(Zeilen 230–235) Platzhalterwerte aus alten Experimenten.
+
+------------------------------------------------------------------------
+TABLE 1 (Zeilen 223–229 in paper_new.txt) — SEGMENTATION
+→ Komplett ersetzen mit:
+------------------------------------------------------------------------
+
+WICHTIG — Welche Werte woher:
+  Moove Onset Collar (SW)  = onset_collar_smoothed  aus seg/seed_{n}/results.json
+  Moove Onset Collar (raw) = onset_collar            aus seg/seed_{n}/results.json
+  Baseline                 = onset_collar            aus seg_baseline/seed_{n}/results.json
+  → Baseline hat keinen SW (Energy-Segmenter produziert direkt Segmente,
+    kein Frame-Output → SW nicht anwendbar)
+
+Vollständige Tabelle mit SW-Einfluss und Baseline-Vergleich (@10ms):
+
+Bird ID | Bouts (train) | Dur (s) | Epochs | Moove raw @10ms | Moove +SW @10ms | Δ SW   | Baseline @10ms  | Δ vs Baseline
+Bird 1  | 405 / 579     | 1407 ± 9 | 16 ± 4 | 0.870 ± 0.003  | 0.986 ± 0.000   | +0.115 | 0.924 ± 0.021   | +0.062
+Bird 2  | 123 / 176     | 176 ± 5  | 18 ± 5 | 0.865 ± 0.019  | 0.949 ± 0.003   | +0.084 | 0.883 ± 0.010   | +0.066
+Bird 3  | 79  / 113     | 270 ± 2  | 14 ± 3 | 0.926 ± 0.002  | 0.817 ± 0.008   | -0.109 | 0.913 ± 0.016   | -0.096 (*)
+Bird 4  | 139 / 199     | 394 ± 3  | 14 ± 2 | 0.893 ± 0.012  | 0.979 ± 0.005   | +0.086 | 0.914 ± 0.011   | +0.065
+Bird 5  | 75  / 108     | 179 ± 3  | 12 ± 1 | 0.791 ± 0.038  | 0.955 ± 0.002   | +0.164 | 0.880 ± 0.008   | +0.075
+
+(*) Bird 3: Moove raw (0.926) > Baseline (0.913). SW verschlechtert wegen Parameter-Bug
+    (Threshold 0.95 zu hoch für globale SW-Parameter 3/5 frames).
+
+Alle Collar-Toleranzen für Moove +SW:
+
+Bird ID | @5ms          | @10ms         | @15ms         | @20ms
+Bird 1  | 0.975 ± 0.001 | 0.986 ± 0.000 | 0.986 ± 0.000 | 0.986 ± 0.000
+Bird 2  | 0.932 ± 0.009 | 0.949 ± 0.003 | 0.952 ± 0.003 | 0.954 ± 0.004
+Bird 3  | 0.796 ± 0.011 | 0.817 ± 0.008 | 0.817 ± 0.007 | 0.818 ± 0.008
+Bird 4  | 0.967 ± 0.007 | 0.979 ± 0.005 | 0.980 ± 0.004 | 0.981 ± 0.004
+Bird 5  | 0.898 ± 0.009 | 0.955 ± 0.002 | 0.962 ± 0.003 | 0.965 ± 0.003
+
+Alle Werte: mean ± SD über 3 Seeds (42, 123, 456).
+
+Table Caption:
+"Table 1: Segmentation network performance across five birds (3 replicates
+per bird). Training duration and bout counts vary slightly across replicates
+due to random file-level splits; values show mean ± SD. Onset collar F1
+(Moove +SW) = with sliding window post-processing; (Moove raw) = raw network
+output without post-processing; (Baseline) = energy-based baseline (evfuncs),
+no sliding window applied (not applicable). Δ SW = improvement from sliding
+window post-processing. Δ vs Baseline = Moove +SW minus Baseline."
+
+------------------------------------------------------------------------
+TABLE 2 (Zeilen 230–236 in paper_new.txt) — CLASSIFICATION
+→ Werte prüfen — stehen in paper_new.txt bereits größtenteils richtig
+(Zeilen 223–228). Diese Tabelle ist für den Klassifikations-Abschnitt
+und wird dort separat behandelt. NICHT im Segmentation Chapter ändern.
+------------------------------------------------------------------------
