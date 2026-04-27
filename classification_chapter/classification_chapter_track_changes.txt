@@ -1,0 +1,241 @@
+TRACK CHANGES — Classification Chapter
+Stand: 2026-04-22
+Alle Werte aus classification_chapter/results/ (5 Birds × 3 Seeds 42/123/456)
+
+FORMAT: Absatz / Zeile → AKTUELL / ÄNDERN IN
+Für manuelle Übernahme in Word.
+
+========================================================================
+ABSATZ 1 — Hauptergebnisse
+========================================================================
+
+------------------------------------------------------------------------
+Syllabenzahl (Trainingsdaten)
+------------------------------------------------------------------------
+AKTUELL:
+  "Training data ranged from 3,099 to 18,505 syllables across birds"
+
+ÄNDERN IN:
+  "Training data ranged from 3,205 to 18,300 syllables across birds"
+
+Quelle: classification_chapter/results/{bird}/seed_42/results.json → n_train
+  ye00pu07: 18,300 | bu04bk04: 3,966 | gy07bu07: 7,234
+  br08pk08: 7,325  | ye04gr05: 3,205
+
+------------------------------------------------------------------------
+Test-Accuracy Range
+------------------------------------------------------------------------
+AKTUELL:
+  "test accuracies ranged from 0.908 to 0.978"
+
+ÄNDERN IN:
+  "test accuracies ranged from 0.927 to 0.977"
+
+------------------------------------------------------------------------
+Macro-F1 Range
+------------------------------------------------------------------------
+AKTUELL:
+  "macro-averaged F1 scores ranging from 0.869 to 0.977"
+
+ÄNDERN IN:
+  "macro-averaged F1 scores ranging from 0.879 to 0.976"
+
+------------------------------------------------------------------------
+Epochen
+------------------------------------------------------------------------
+AKTUELL:
+  "training terminating after 12–26 epochs (mean: 18 ± 5 epochs)"
+
+ÄNDERN IN:
+  "training terminating after 9–33 epochs (mean: 15 ± 6 epochs)"
+
+Quelle: reviewer_requirements_and_planned_changes.md §3.1
+  Seeds pro Bird: ye00pu07: 11,9,14 | bu04bk04: 20,33,20 | gy07bu07: 11,9,17
+                  br08pk08: 10,9,12  | ye04gr05: 10,18,12
+
+========================================================================
+ABSATZ 2 — Bird 1 Detail (Confusion Matrix + UMAP)
+========================================================================
+
+------------------------------------------------------------------------
+Figure-Referenz: Confusion Matrix
+------------------------------------------------------------------------
+AKTUELL:   "(Fig. 5C)"   [Confusion Matrix]
+ÄNDERN IN: "(Fig. 5E)"
+
+------------------------------------------------------------------------
+Figure-Referenz: UMAP 30 ms
+------------------------------------------------------------------------
+AKTUELL:   "(Fig. 5E; clusters for 'i', 'j', and 'a' show substantial overlap)"
+ÄNDERN IN: "(Fig. 5F; clusters for 'i', 'j', and 'a' show substantial overlap)"
+
+------------------------------------------------------------------------
+Figure-Referenz: UMAP full syllable
+------------------------------------------------------------------------
+AKTUELL:   "(Fig. 5F)"
+ÄNDERN IN: "(Fig. 5G)"
+
+NOTE: Inhalt des Confusion-Matrix-Absatzes bleibt unverändert (Werte aus
+seed_42, wie im Original; user-Entscheidung: "dabei lassen was es ist").
+
+========================================================================
+ABSATZ 3 — Input-Duration Analyse (Bird 1)
+========================================================================
+
+------------------------------------------------------------------------
+Figure-Referenz: Input Duration Plot
+------------------------------------------------------------------------
+AKTUELL:   "(Fig. 5D)"
+ÄNDERN IN: "(Fig. 5C)"
+
+------------------------------------------------------------------------
+Accuracy bei 30 ms (alter Wert: 10 Klassen ohne Merging)
+------------------------------------------------------------------------
+AKTUELL:
+  "Accuracy increased steeply up to 30 ms (reaching 95.89% without the
+  merging of labels 'c' and 'h') and showed only modest improvements thereafter."
+
+ÄNDERN IN:
+  "Accuracy increased steeply up to 30 ms (reaching [PLACEHOLDER]% at 30 ms)
+  and showed only modest improvements thereafter."
+
+NOTE: Alter Wert (95.89%) war 10-Klassen-Modell ohne Merging. Neues Modell
+hat 9 Klassen (c/h gemerged). Placeholder ersetzen sobald Panel C mit
+echten Daten aus results_duration_sweep/ befüllt ist.
+
+------------------------------------------------------------------------
+Accuracy bei 5.8 ms
+------------------------------------------------------------------------
+AKTUELL:
+  "the network achieved 86.39% accuracy"
+
+ÄNDERN IN:
+  "networks achieved 48.9–88.1% accuracy across birds"
+
+NOTE: Range über 5 Vögel (mean über 3 Seeds, L=4, 5.8 ms):
+  br08pk08: 50.2% | bu04bk04: 48.9% | gy07bu07: 81.4% | ye00pu07: 88.1% | ye04gr05: 64.3%
+
+========================================================================
+FIGURE 5 CAPTION
+========================================================================
+
+------------------------------------------------------------------------
+Panel C (alt: Input Duration — war D)
+------------------------------------------------------------------------
+AKTUELL:
+  "(D) Effect of input duration on test accuracy for bird 1 (10 classes,
+  no merging) for input windows from 5-50 ms after syllable onset."
+
+ÄNDERN IN:
+  "(C) Effect of input duration on test accuracy for bird 1 (9 classes,
+  c/h merged) for input windows from 5–50 ms after syllable onset."
+
+------------------------------------------------------------------------
+Panel D (NEU: Separability — bisher kein Caption)
+------------------------------------------------------------------------
+EINFÜGEN nach Panel C:
+  "(D) Cluster separability (mean inter-centroid distance in PCA space)
+  versus macro-averaged F1-score across birds."
+
+------------------------------------------------------------------------
+Panel E (alt: Confusion Matrix — war C)
+------------------------------------------------------------------------
+AKTUELL:
+  "(C) Confusion matrix for bird 1 (test set, 9 classes with c/h merged).
+  Numbers indicate percentage of syllables classified as each type."
+
+ÄNDERN IN:
+  "(E) Confusion matrix for bird 1 (test set, 9 classes with c/h merged).
+  Numbers indicate percentage of syllables classified as each type."
+
+------------------------------------------------------------------------
+Panel F (alt: UMAP 30 ms — war E)
+------------------------------------------------------------------------
+AKTUELL:
+  "(E) UMAP projection of spectrograms using only the first 30 ms after
+  syllable onset (bird 1). Each point represents one syllable, colored by
+  type. N indicates sample sizes for each syllable type."
+
+ÄNDERN IN:
+  "(F) UMAP projection of spectrograms using only the first 30 ms after
+  syllable onset (bird 1). Each point represents one syllable, colored by
+  type. N indicates sample sizes for each syllable type."
+
+------------------------------------------------------------------------
+Panel G (alt: UMAP full syllable — war F)
+------------------------------------------------------------------------
+AKTUELL:
+  "(F) UMAP projection of full-length spectrograms (normalized duration)
+  for the same bird and same syllables as in E."
+
+ÄNDERN IN:
+  "(G) UMAP projection of full-length spectrograms (normalized duration)
+  for the same bird and same syllables as in F."
+
+========================================================================
+ABSATZ 1 — Syllabenzahl + Dauer (aktualisiert)
+========================================================================
+
+AKTUELL:
+  "Training data ranged from 3,099 to 18,505 syllables across birds"
+
+ÄNDERN IN:
+  "Training data ranged from 3,146 to 18,335 syllables (96–559 s) across birds"
+
+NOTE: n_train-Werte sind Mittelwerte über 3 Seeds (variieren durch zufälligen Split).
+Dauer berechnet aus n_train × mittlere Syllabendauer (30 ms Input-Fenster).
+
+========================================================================
+ABSATZ 1 — Separability Methods (NEU, nach Performance-Satz einfügen)
+========================================================================
+
+EINFÜGEN nach "indicating robust generalization across individual syllable repertoires.":
+
+"To assess whether acoustic structure of the syllable repertoire predicts
+classification difficulty, we computed a cluster separability score for each
+bird: syllable spectrograms were constructed using the same preprocessing
+pipeline as training (first 30 ms after onset, z-normalized per sample),
+projected onto 50 principal components (PCA), and the mean pairwise Euclidean
+distance between all per-class centroids in this reduced space was used as a
+separability measure (Fig. 5D)."
+
+========================================================================
+TABLE 2 — Komplett ersetzen
+========================================================================
+
+AKTUELL (alte Tabelle, enthielt finale Losswerte):
+  Bird | Classes | Syllables | Accuracy | Final loss | …
+
+ÄNDERN IN (neue Tabelle, siehe classification_chapter/table2/table2.txt):
+
+Bird   | Classes | Syllables (train) | Duration train (s) | Epochs       | Accuracy    | Macro-P     | Macro-R     | Macro-F1
+-------|---------|-------------------|--------------------|--------------|-------------|-------------|-------------|----------
+Bird 1 |       9 |     18,335 ± 127  |         559 ± 4    |  9–14 (11±2) | 0.977±0.005 | 0.972±0.006 | 0.981±0.004 | 0.976±0.005
+Bird 2 |      10 |      3,803 ± 132  |         116 ± 4    | 20–33 (24±6) | 0.966±0.004 | 0.956±0.010 | 0.972±0.007 | 0.963±0.004
+Bird 3 |      11 |      7,115 ±  85  |         217 ± 3    |  9–17 (12±3) | 0.948±0.011 | 0.913±0.011 | 0.945±0.010 | 0.923±0.009
+Bird 4 |       8 |      7,360 ±  50  |         224 ± 2    |  9–12 (10±1) | 0.927±0.009 | 0.863±0.023 | 0.907±0.017 | 0.879±0.019
+Bird 5 |       8 |      3,146 ±  44  |          96 ± 1    | 10–18 (13±3) | 0.964±0.007 | 0.954±0.009 | 0.963±0.004 | 0.957±0.008
+
+Table Caption:
+"Table 2. Classification network performance across five birds (3 replicates
+per bird). Training syllable counts and duration vary slightly across replicates
+due to random splits; values show mean ± SD. Epochs: early stopping with
+patience 5; range shows min–max across seeds per bird (mean ± SD).
+Macro-averaged precision, recall, and F1 computed on the held-out test set."
+
+Quelle: classification_chapter/table2/table2.txt
+
+========================================================================
+OFFENE PLATZHALTER — nach Fertigstellung ersetzen
+========================================================================
+
+[x] [PLACEHOLDER] bei 5.8 ms → erledigt: 48.9–88.1% (alle 5 Vögel, mean über 3 Seeds)
+[x] Panel C Figure: echte Daten aus results_duration_sweep/ verfügbar — generate_figure5.py updaten
+
+========================================================================
+NICHT GEÄNDERT (user-Entscheidung)
+========================================================================
+- Confusion Matrix: bleibt seed_42, kein Averaging über Seeds
+- Inference speed: 0.94 ms ± 0.25 ms — unverändert übernommen
+- c/h Merge Begründungstext: unverändert
+- Spezifische Confusion-Matrix-Werte im Text (6.3%, 3.1%, 5%): unverändert

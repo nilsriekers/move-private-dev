@@ -219,12 +219,160 @@ help() {
     grep '^#' "$0" | sed 's/^# \?//'
 }
 
+# ══════════════════════════════════════════════════════════════════════
+# Duration sweep: retrain classification for each input_length.
+# 10 lengths × 5 birds × 3 seeds = 150 runs.
+# One VM per bird; each VM iterates all lengths + seeds sequentially.
+# Results go to  gs://{BUCKET}/results_duration_sweep/  and locally to
+#   final_experiments/results_duration_sweep/   (never touches results/).
+#
+# Additional usage:
+#   bash final_experiments/gcloud_run.sh setup_duration_sweep  # upload code
+#   bash final_experiments/gcloud_run.sh launch_duration_sweep
+#   bash final_experiments/gcloud_run.sh status_duration_sweep
+#   bash final_experiments/gcloud_run.sh collect_duration_sweep
+# ══════════════════════════════════════════════════════════════════════
+
+DURATION_SWEEP_LENGTHS="4 7 10 14 17 21 24 28 31 34"
+
+_startup_script_duration_sweep() {
+    local bird="$1"
+    local bird_zip
+    bird_zip="$(bird_to_zip "$bird")"
+    cat <<SCRIPT
+#!/bin/bash
+set -euo pipefail
+export HOME="\${HOME:-/root}"
+exec > /var/log/moove-duration-sweep.log 2>&1
+
+BUCKET="${BUCKET}"
+RAW_DATA_BUCKET="${RAW_DATA_BUCKET}"
+BIRD="${bird}"
+BIRD_ZIP="${bird_zip}"
+REPO_DIR="/opt/moove"
+RAW_DATA_DIR="/opt/moove-raw"
+LENGTHS="${DURATION_SWEEP_LENGTHS}"
+SEEDS="42 123 456"
+
+apt-get update -qq && apt-get install -y -qq unzip
+export MPLBACKEND=Agg
+
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source "\$HOME/.cargo/env" 2>/dev/null || true
+export PATH="\$HOME/.local/bin:\$PATH"
+
+mkdir -p "\$REPO_DIR"
+gsutil -m rsync -r "\${BUCKET}/repo/" "\$REPO_DIR/"
+
+mkdir -p "\$RAW_DATA_DIR"
+gsutil cp "\${RAW_DATA_BUCKET}/\${BIRD_ZIP}.zip" /tmp/raw_data.zip
+cd "\$RAW_DATA_DIR" && unzip /tmp/raw_data.zip && rm /tmp/raw_data.zip
+
+export MOOVE_RAW_DATA_BASE="\$RAW_DATA_DIR"
+cd "\$REPO_DIR"
+
+echo "Installing Python dependencies..."
+uv sync --no-dev
+echo "Dependencies installed."
+
+# Train one model per (input_length, seed) combination
+for L in \$LENGTHS; do
+    for S in \$SEEDS; do
+        echo "=== Bird=\$BIRD  input_length=\$L  seed=\$S ==="
+        uv run python3 final_experiments/train_class_duration_sweep.py \
+            --bird "\$BIRD" --seed \$S --input_length \$L
+    done
+done
+
+# Upload only the duration sweep results (never touches results/)
+gsutil -m rsync -r \
+    "final_experiments/results_duration_sweep/\$BIRD/" \
+    "\${BUCKET}/results_duration_sweep/\$BIRD/"
+
+echo "Duration sweep complete for \$BIRD"
+shutdown -h now
+SCRIPT
+}
+
+# ── launch_duration_sweep ─────────────────────────────────────────────
+launch_duration_sweep() {
+    for bird in "${BIRDS[@]}"; do
+        local vm_name="moove-sweep-${bird//_/-}"
+        echo "=== Launching $vm_name ==="
+        local tmpfile
+        tmpfile=$(mktemp)
+        _startup_script_duration_sweep "$bird" > "$tmpfile"
+        local launched=false
+        for zone in "${ZONES[@]}"; do
+            if gcloud compute instances create "$vm_name" \
+                --zone="$zone" \
+                --machine-type="$MACHINE_TYPE" \
+                --image-family=debian-12 \
+                --image-project=debian-cloud \
+                --boot-disk-size=20GB \
+                --metadata-from-file=startup-script="$tmpfile" \
+                --scopes=storage-rw \
+                --no-restart-on-failure \
+                --maintenance-policy=TERMINATE 2>&1; then
+                echo "  VM $vm_name launched in $zone."
+                launched=true
+                break
+            else
+                echo "  Zone $zone unavailable, trying next..."
+            fi
+        done
+        rm -f "$tmpfile"
+        if [ "$launched" = false ]; then
+            echo "  FAILED: Could not launch $vm_name in any zone!"
+        fi
+    done
+    echo ""
+    echo "All sweep VMs launched. Monitor with: bash final_experiments/gcloud_run.sh status_duration_sweep"
+}
+
+# ── status_duration_sweep ─────────────────────────────────────────────
+status_duration_sweep() {
+    echo "=== Duration Sweep VM Status ==="
+    for bird in "${BIRDS[@]}"; do
+        local vm_name="moove-sweep-${bird//_/-}"
+        local found=false
+        for zone in "${ZONES[@]}"; do
+            local s
+            s=$(gcloud compute instances describe "$vm_name" --zone="$zone" \
+                --format="value(status)" 2>/dev/null) && {
+                echo "  $vm_name ($zone): $s"
+                found=true
+                break
+            }
+        done
+        if [ "$found" = false ]; then
+            echo "  $vm_name: NOT_FOUND"
+        fi
+    done
+
+    echo ""
+    echo "=== Duration sweep results in bucket ==="
+    gsutil ls "${BUCKET}/results_duration_sweep/" 2>/dev/null || echo "  (no results yet)"
+}
+
+# ── collect_duration_sweep ────────────────────────────────────────────
+collect_duration_sweep() {
+    local out_dir="$REPO_DIR/final_experiments/results_duration_sweep"
+    echo "=== Downloading duration sweep results to $out_dir ==="
+    mkdir -p "$out_dir"
+    gsutil -m rsync -r "${BUCKET}/results_duration_sweep/" "$out_dir/"
+    echo "Done."
+}
+
 # ── Dispatch ─────────────────────────────────────────────────────────
 case "$CMD" in
-    setup)   setup   ;;
-    launch)  launch  ;;
-    status)  status  ;;
-    collect) collect ;;
-    cleanup) cleanup ;;
-    *)       help    ;;
+    setup)                    setup                    ;;
+    launch)                   launch                   ;;
+    status)                   status                   ;;
+    collect)                  collect                  ;;
+    cleanup)                  cleanup                  ;;
+    launch_duration_sweep)    launch_duration_sweep    ;;
+    status_duration_sweep)    status_duration_sweep    ;;
+    collect_duration_sweep)   collect_duration_sweep   ;;
+    *)                        help                     ;;
 esac

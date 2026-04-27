@@ -1,0 +1,21 @@
+Table 1. Segmentation network performance across five birds (3 replicates per bird, mean ± SD).
+
+Bird      | Bouts       | Dur (s)  | Epochs | Moove raw | Moove +SW    | Δ SW   | Baseline     | Δ vs Base
+          | (train/tot) |          |        | @10ms     | @10ms        |        | @10ms        |
+----------|-------------|----------|--------|-----------|--------------|--------|--------------|----------
+Bird 1    | 405 / 579   | 1407 ± 9 | 16 ± 4 | 0.870±0.003 | 0.986±0.000 | +0.115 | 0.924±0.021 | +0.061
+Bird 2    | 123 / 176   |  176 ± 5 | 18 ± 5 | 0.865±0.019 | 0.949±0.003 | +0.084 | 0.883±0.010 | +0.066
+Bird 3*   |  79 / 113   |  270 ± 2 | 14 ± 3 | 0.926±0.002 | 0.817±0.008 | −0.109 | 0.913±0.016 | −0.096
+Bird 4    | 139 / 199   |  394 ± 3 | 14 ± 2 | 0.893±0.012 | 0.979±0.005 | +0.086 | 0.914±0.011 | +0.065
+Bird 5    |  75 / 108   |  179 ± 3 | 12 ± 0 | 0.791±0.038 | 0.955±0.002 | +0.164 | 0.880±0.008 | +0.075
+
+* Bird 3: Standard parameters. With dense chunk sampling (step = 1 frame instead of default step = hist_size),
+  Moove +SW yields 0.917 ± 0.007 (see main text).
+
+Moove raw   = onset collar F1, raw network output (no sliding window post-processing).
+Moove +SW   = onset collar F1 with sliding window post-processing applied.
+Baseline    = energy-based baseline (evfuncs; Nicholson 2021), no sliding window applied.
+Δ SW        = Moove +SW minus Moove raw (improvement from sliding window).
+Δ vs Base   = Moove +SW minus Baseline.
+All onset collar values at ±10 ms tolerance. Training duration and bout counts vary slightly
+across replicates due to random file-level splits.

@@ -1,0 +1,24 @@
+Table 2. Classification network performance across five birds (3 replicates per bird, random seeds 42/123/456).
+
+All values: mean ± SD across replicates. Training/validation/test split: 70%/15%/15% (random per seed).
+Syllable counts and duration vary slightly across seeds due to random file-level splits.
+Macro-averaged precision, recall, and F1 computed on test set (weighted cross-entropy loss, no downsampling).
+
+Bird   | Classes | Syllables (train) | Duration train (s) | Epochs       | Accuracy    | Macro-P     | Macro-R     | Macro-F1
+-------|---------|-------------------|--------------------|--------------|-------------|-------------|-------------|----------
+Bird 1 |       9 |     18,335 ± 127  |         559 ± 4    |  9–14 (11±2) | 0.977±0.005 | 0.972±0.006 | 0.981±0.004 | 0.976±0.005
+Bird 2 |      10 |      3,803 ± 132  |         116 ± 4    | 20–33 (24±6) | 0.966±0.004 | 0.956±0.010 | 0.972±0.007 | 0.963±0.004
+Bird 3 |      11 |      7,115 ±  85  |         217 ± 3    |  9–17 (12±3) | 0.948±0.011 | 0.913±0.011 | 0.945±0.010 | 0.923±0.009
+Bird 4 |       8 |      7,360 ±  50  |         224 ± 2    |  9–12 (10±1) | 0.927±0.009 | 0.863±0.023 | 0.907±0.017 | 0.879±0.019
+Bird 5 |       8 |      3,146 ±  44  |          96 ± 1    | 10–18 (13±3) | 0.964±0.007 | 0.954±0.009 | 0.963±0.004 | 0.957±0.008
+
+Notes:
+- Bird 1 (ye00pu07): 9 classes; syllables c/h merged (spectrally similar at 30 ms onset, not learning targets)
+- Bird 2 (bu04bk04): 10 classes; label b merged into i
+- Bird 3 (gy07bu07): 11 classes; labels m, n, x excluded (motif variants / noise)
+- Bird 4 (br08pk08): 8 classes; labels i→a, k→a, l→e, m→b merged
+- Bird 5 (ye04gr05): 8 classes; labels i→b, j→b merged
+- Epochs: early stopping with patience 5; range shows min–max across all seeds × birds (mean ± SD per bird)
+- Duration (s): computed from actual syllable count × mean syllable duration (30 ms input window)
+
+Source: classification_chapter/results/{bird}/seed_{42,123,456}/results.json
