@@ -20,7 +20,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.font_manager import fontManager
-from matplotlib.ticker import MaxNLocator
+import math
+from matplotlib.ticker import MaxNLocator, LogLocator, FuncFormatter
 from matplotlib.lines import Line2D
 import numpy as np
 
@@ -166,40 +167,55 @@ def plot_loss_small_multiples(axes, results):
         ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=5))
         if idx == 0:
             ax.set_ylabel("Loss")
-            ax.legend(fontsize=7, loc="upper right")
+            # Single neutral legend in first subplot — applies to all birds
+            legend_handles = [
+                Line2D([0], [0], color="black", linewidth=1.8, linestyle="-",  label="Train"),
+                Line2D([0], [0], color=VAL_COLOR, linewidth=1.8, linestyle="--", label="Val"),
+            ]
+            ax.legend(handles=legend_handles, fontsize=8, loc="upper left")
         if idx == 2:
             ax.set_xlabel("Epoch")
+        if idx == 4:
+            pass  # no per-subplot legend here
 
 
 # ── Panel B: Framewise P/R/F1 dot plot (RAW) ────────────────────────
 
 def plot_framewise_dots(ax, results):
-    """Dot plot with error bars for framewise P/R/F1 per bird (RAW, no SW)."""
+    """Dot plot with error bars for framewise P/R/F1 per bird (RAW, no SW).
+    Each bird gets its own color; marker shape distinguishes P/R/F1."""
     birds = [b for b in BIRD_IDS if b in results]
     metrics = ["precision", "recall", "f1"]
     metric_labels = ["Precision", "Recall", "F1"]
     metric_markers = ["o", "s", "D"]
-    metric_colors = ["#4e79a7", "#f28e2b", "#59a14f"]
 
     y = np.arange(len(birds))
 
-    for i, (m, ml, mk, mc) in enumerate(zip(metrics, metric_labels,
-                                              metric_markers, metric_colors)):
-        means = [np.mean([r["framewise"][m] for r in results[b]]) for b in birds]
-        stds = [np.std([r["framewise"][m] for r in results[b]]) for b in birds]
+    for j, bird in enumerate(birds):
+        color = BIRD_COLORS[bird]
+        for i, (m, mk) in enumerate(zip(metrics, metric_markers)):
+            mean = np.mean([r["framewise"][m] for r in results[bird]])
+            std  = np.std([r["framewise"][m] for r in results[bird]])
+            offset = (i - 1) * 0.15
+            ax.errorbar([mean], [j + offset], xerr=[std], fmt=mk, color=color,
+                        markersize=7, capsize=3, capthick=1.2, linewidth=1.2,
+                        markeredgecolor="white", markeredgewidth=0.5)
 
-        offset = (i - 1) * 0.15
-        ax.errorbar(means, y + offset, xerr=stds, fmt=mk, color=mc,
-                    markersize=7, capsize=3, capthick=1.2, linewidth=1.2,
-                    label=ml, markeredgecolor="white", markeredgewidth=0.5)
+    # Legend: marker shapes for metrics only
+    legend_handles = [
+        Line2D([0], [0], marker=mk, color="black", linestyle="none",
+               markersize=7, markeredgecolor="white", markeredgewidth=0.5,
+               label=ml)
+        for ml, mk in zip(metric_labels, metric_markers)
+    ]
 
     ax.set_yticks(y)
     ax.set_yticklabels([BIRD_LABELS[b] for b in birds])
     ax.set_xlabel("Score")
-    ax.set_title("Framewise Segmentation (no SW)")
+    ax.set_title("Framewise Segmentation\n(no sliding window)")
     # ax.set_xlim(0.88, 1.0)  # OLD: narrow range
     ax.set_xlim(0.7, 1.0)
-    ax.legend(loc="lower left", fontsize=8)
+    ax.legend(handles=legend_handles, loc="upper left", fontsize=8)
     ax.invert_yaxis()
 
 
@@ -267,8 +283,9 @@ def plot_collar_f1(ax, results, baseline_results=None):
 
     ax.set_xlabel("Collar tolerance (ms)")
     ax.set_ylabel("Onset-based F1")
-    ax.set_title("Onset Collar F1 (Moove +SW vs Baseline)")
+    ax.set_title("Onset Collar F1\n(Moove with sliding window vs. Baseline)")
     ax.set_xticks(COLLAR_VALUES_MS)
+    ax.set_xlim(COLLAR_VALUES_MS[0], COLLAR_VALUES_MS[-1] + 0.5)
     # ax.set_ylim(0.1, 1.0)  # OLD: too much empty space below
     ax.set_ylim(0.5, 1.0)  # baseline @5ms goes down to ~0.53
     ax.legend(fontsize=8)
@@ -296,14 +313,18 @@ def plot_duration_vs_f1(ax, results):
     ax.set_title("Training Data Size vs. Performance")
     if USE_LOG_SCALE:
         ax.set_xscale("log")
+        ax.set_xticks([100, 1000])
+        ax.xaxis.set_major_formatter(FuncFormatter(
+            lambda x, _: f"$10^{{{int(round(math.log10(x)))}}}$" if x > 0 else ""))
     # OLD: no explicit ylim set
     ax.set_ylim(0.7, 1.0)
-    ax.legend(fontsize=8)
+    ax.legend(fontsize=8, loc="lower right")
 
 
 # ── Compose figure ───────────────────────────────────────────────────
 
 def generate_figure4():
+    from matplotlib.gridspec import GridSpecFromSubplotSpec
     setup_fonts()
     results = load_seg_results()
     baseline_results = load_baseline_results()
@@ -317,16 +338,18 @@ def generate_figure4():
     print(f"Loaded baseline results for {len(baseline_results)} birds")
 
     fig = plt.figure(figsize=(14, 10))
-    gs = fig.add_gridspec(2, 6, hspace=0.55, wspace=0.5,
+    # Outer grid: 2 rows × 3 cols (BCD each get one col); reduced hspace
+    gs = fig.add_gridspec(2, 3, hspace=0.38, wspace=0.4,
                           height_ratios=[1, 1.2])
 
-    # Row 1: 5 small loss subplots
-    loss_axes = [fig.add_subplot(gs[0, i]) for i in range(5)]
+    # Row 0: 5 loss subplots spanning all 3 outer columns
+    gs_top = GridSpecFromSubplotSpec(1, 5, subplot_spec=gs[0, :], wspace=0.45)
+    loss_axes = [fig.add_subplot(gs_top[0, i]) for i in range(5)]
 
-    # Row 2: 3 panels
-    ax_b = fig.add_subplot(gs[1, 0:2])
-    ax_c = fig.add_subplot(gs[1, 2:4])
-    ax_d = fig.add_subplot(gs[1, 4:6])
+    # Row 1: 3 panels
+    ax_b = fig.add_subplot(gs[1, 0])
+    ax_c = fig.add_subplot(gs[1, 1])
+    ax_d = fig.add_subplot(gs[1, 2])
 
     plot_loss_small_multiples(loss_axes, results)
     plot_framewise_dots(ax_b, results)
@@ -338,16 +361,17 @@ def generate_figure4():
         Line2D([0], [0], color="black", linewidth=2, linestyle="-", label="Moove (+SW)"),
         Line2D([0], [0], color="black", linewidth=1.2, linestyle="--", alpha=0.7, label="Baseline (raw)"),
     ]
-    ax_c.legend(handles=legend_elements, fontsize=7, loc="lower right")
+    ax_c.legend(handles=legend_elements, fontsize=8, loc="lower right")
 
-    # Panel labels
-    fig.text(0.02, 0.97, "A", fontsize=16, fontweight="bold", va="top")
-    ax_b.text(-0.15, 1.15, "B", transform=ax_b.transAxes,
-              fontsize=16, fontweight="bold", va="top")
-    ax_c.text(-0.15, 1.15, "C", transform=ax_c.transAxes,
-              fontsize=16, fontweight="bold", va="top")
-    ax_d.text(-0.15, 1.15, "D", transform=ax_d.transAxes,
-              fontsize=16, fontweight="bold", va="top")
+    # Panel labels — compute actual axis positions then place in figure coordinates
+    # so A (top row) and B/C/D (bottom row) each sit just above their own panel
+    fig.canvas.draw()
+    pad_y = 0.012   # fixed gap above panel top in figure fraction units
+    pad_x = -0.025  # fixed offset to the left in figure fraction units
+    for ax, letter in [(loss_axes[0], "A"), (ax_b, "B"), (ax_c, "C"), (ax_d, "D")]:
+        pos = ax.get_position()
+        fig.text(pos.x0 + pad_x, pos.y1 + pad_y, letter,
+                 fontsize=16, fontweight="bold", va="bottom")
 
     for ext in ["svg", "png"]:
         path = os.path.join(OUTPUT_DIR, f"figure4.{ext}")

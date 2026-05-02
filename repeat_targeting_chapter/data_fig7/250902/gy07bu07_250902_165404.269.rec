@@ -1,0 +1,23 @@
+File created: Wed, Sep 10, 2025, 17:41:41
+
+    begin rec = 0 ms
+    trig time  = 2000 ms
+    rec end = 14599 ms
+
+ADFREQ = 44100
+Chans = 1
+Samples = 643821
+Catch Song = 0
+Hand Segmented = 0
+Hand Classified = 0
+T Before = 2.0
+T After = 1.0
+Feedback information:
+
+2.358059E3 msec: FB # gy07bu07_d_40ms.wav : Templ = 0
+
+7.486767E3 msec: FB # gy07bu07_d_40ms.wav : Templ = 0
+
+1.078255E4 msec: FB # gy07bu07_d_40ms.wav : Templ = 0
+
+1.387081E4 msec: FB # gy07bu07_g_40ms.wav : Templ = 0

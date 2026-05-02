@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.font_manager import fontManager
 from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.lines import Line2D
 from scipy import stats
 import numpy as np
 import pandas as pd
@@ -97,6 +98,24 @@ def load_separability():
 # ── Panel A: Loss curves (5 small multiples) ─────────────────────────
 
 def plot_loss_small_multiples(axes, results):
+    # First pass: global y-range across all birds/seeds
+    all_vals = []
+    for bird in BIRD_IDS:
+        if bird not in results:
+            continue
+        histories = [r["history"] for r in results[bird] if "history" in r]
+        if not histories:
+            continue
+        min_len = min(len(h["train_loss"]) for h in histories)
+        tr = np.array([h["train_loss"][:min_len] for h in histories])
+        vl = np.array([h["val_loss"][:min_len]   for h in histories])
+        all_vals.extend((tr.mean(0) + tr.std(0)).tolist())
+        all_vals.extend((vl.mean(0) + vl.std(0)).tolist())
+        all_vals.extend((tr.mean(0) - tr.std(0)).tolist())
+        all_vals.extend((vl.mean(0) - vl.std(0)).tolist())
+    global_ymin = max(0, min(all_vals) * 0.95)
+    global_ymax = max(all_vals) * 1.05
+
     for idx, bird in enumerate(BIRD_IDS):
         ax = axes[idx]
         if bird not in results:
@@ -110,18 +129,22 @@ def plot_loss_small_multiples(axes, results):
         tr = np.array([h["train_loss"][:min_len] for h in histories])
         vl = np.array([h["val_loss"][:min_len]   for h in histories])
         ep = np.arange(1, min_len + 1)
-        ax.plot(ep, tr.mean(0), color=color, linewidth=1.8, label="Train")
+        ax.plot(ep, tr.mean(0), color=color, linewidth=1.8)
         ax.fill_between(ep, tr.mean(0)-tr.std(0), tr.mean(0)+tr.std(0),
                         color=color, alpha=0.15)
-        ax.plot(ep, vl.mean(0), color=VAL_COLOR, linewidth=1.8,
-                linestyle="--", label="Val")
+        ax.plot(ep, vl.mean(0), color=VAL_COLOR, linewidth=1.8, linestyle="--")
         ax.fill_between(ep, vl.mean(0)-vl.std(0), vl.mean(0)+vl.std(0),
                         color=VAL_COLOR, alpha=0.12)
+        ax.set_ylim(global_ymin, global_ymax)
         ax.set_title(BIRD_LABELS[bird], fontsize=10)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=5))
         if idx == 0:
             ax.set_ylabel("Loss")
-            ax.legend(fontsize=7, loc="upper right")
+            legend_handles = [
+                Line2D([0], [0], color="black", linewidth=1.8, linestyle="-",  label="Train"),
+                Line2D([0], [0], color=VAL_COLOR, linewidth=1.8, linestyle="--", label="Val"),
+            ]
+            ax.legend(handles=legend_handles, fontsize=8, loc="upper left")
         if idx == 2:
             ax.set_xlabel("Epoch")
 
@@ -131,29 +154,34 @@ def plot_loss_small_multiples(axes, results):
 def plot_class_metrics_dots(ax, results):
     birds   = [b for b in BIRD_IDS if b in results]
     metrics = [
-        ("test_accuracy",           "Accuracy", "o", "#4e79a7"),
-        ("classification.macro.f1", "Macro-F1", "D", "#59a14f"),
+        ("test_accuracy",           "Accuracy", "o"),
+        ("classification.macro.f1", "Macro-F1", "D"),
     ]
     y = np.arange(len(birds))
-    for i, (key, label, marker, color) in enumerate(metrics):
-        means, stds = [], []
-        for bird in birds:
+    for i, (key, label, marker) in enumerate(metrics):
+        offset = (i - 0.5) * 0.2
+        for j, bird in enumerate(birds):
             vals = []
             for r in results[bird]:
                 v = r
                 for p in key.split("."): v = v[p]
                 vals.append(v)
-            means.append(np.mean(vals)); stds.append(np.std(vals))
-        offset = (i - 0.5) * 0.2
-        ax.errorbar(means, y + offset, xerr=stds, fmt=marker, color=color,
-                    markersize=7, capsize=3, capthick=1.2, linewidth=1.2,
-                    label=label, markeredgecolor="white", markeredgewidth=0.5)
+            ax.errorbar([np.mean(vals)], [y[j] + offset], xerr=[np.std(vals)],
+                        fmt=marker, color=BIRD_COLORS[bird],
+                        markersize=7, capsize=3, capthick=1.2, linewidth=1.2,
+                        markeredgecolor="white", markeredgewidth=0.5)
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="gray", linewidth=0, markersize=7, label="Accuracy"),
+        Line2D([0], [0], marker="D", color="gray", linewidth=0, markersize=7, label="Macro-F1"),
+    ]
     ax.set_yticks(y)
     ax.set_yticklabels([BIRD_LABELS[b] for b in birds])
+    for tick, bird in zip(ax.get_yticklabels(), birds):
+        tick.set_color(BIRD_COLORS[bird])
     ax.set_xlabel("Score")
     ax.set_title("Classification Performance\n(weighted CE, 3 replicates)")
     ax.set_xlim(0.83, 1.02)
-    ax.legend(loc="lower right", fontsize=8)
+    ax.legend(handles=legend_handles, loc="upper left", fontsize=8)
     ax.invert_yaxis()
 
 
@@ -177,9 +205,9 @@ def _sep_scatter(ax, sep_data, metric_key, metric_std_key, ylabel, title):
                     fontsize=8, color=color)
 
     slope, intercept, r, p, _ = stats.linregress(xs, ys)
-    xl = np.linspace(xs.min() * 0.90, xs.max() * 1.05, 200)
-    ax.plot(xl, slope * xl + intercept, "k--", linewidth=1.1, alpha=0.55,
-            label=f"r={r:.2f}, p={p:.3f}", zorder=1)
+    ax.axline((xs.mean(), slope * xs.mean() + intercept), slope=slope,
+              color="k", linestyle="--", linewidth=1.1, alpha=0.55, zorder=1,
+              label=f"r={r:.2f}, p={p:.3f}")
 
     ax.set_xlabel("Mean inter-centroid distance\n(PCA space)")
     ax.set_ylabel(ylabel)
@@ -245,9 +273,9 @@ def plot_input_duration(ax, sweep):
     ax.set_ylabel("Test accuracy")
     ax.set_title("Accuracy vs. Input Duration\n(5 birds, 3 replicates each)", fontsize=10)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0%}"))
-    ax.set_xlim(0, 55)
+    ax.set_xlim(LENGTHS_MS[0], LENGTHS_MS[-1] + 1)
     ax.set_ylim(0.40, 1.01)
-    ax.set_xticks(np.arange(0, 56, 10))
+    ax.set_xticks([10, 20, 30, 40, 50])
     ax.legend(fontsize=7, loc="lower right")
 
 
@@ -272,9 +300,9 @@ def plot_confusion_matrix(ax):
     for i in range(n):
         for j in range(n):
             val = cm_norm[i, j] * 100
-            if val > 0.5:
-                ax.text(j, i, f"{val:.1f}", ha="center", va="center",
-                        fontsize=7 if val < 10 else 8,
+            if val > 1.0:
+                ax.text(j, i, f"{val:.0f}", ha="center", va="center",
+                        fontsize=8,
                         color="white" if val > 50 else "black")
     ax.set_xticks(range(n)); ax.set_xticklabels(labels, fontsize=8)
     ax.set_yticks(range(n)); ax.set_yticklabels(labels, fontsize=8)
@@ -282,9 +310,6 @@ def plot_confusion_matrix(ax):
     ax.set_ylabel("True", fontsize=10)
     ax.set_title("Confusion Matrix\nBird 1 (seed 42)", fontsize=10)
     ax.grid(False)
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    cax = make_axes_locatable(ax).append_axes("right", size="4%", pad=0.05)
-    plt.colorbar(im, cax=cax, label="%")
 
 
 # ── Panels G & H: UMAP ───────────────────────────────────────────────
@@ -293,13 +318,18 @@ UMAP_COLORS = ["#1f77b4","#fd7f0e","#2ca02c","#d62728","#9467bd",
                "#8c564b","#e377c2","#7f7f7f","#bcbd22","#1ebecf"]
 
 def plot_umap(ax, df, title, show_legend=True):
-    col = "label" if "label" in df.columns else "Labels"
-    df  = df.copy(); df["_l"] = df[col]
+    col = "Labels" if ("Labels" in df.columns and df["Labels"].nunique() > 1) else "label" if "label" in df.columns else "Labels"
+    df  = df.copy().sample(frac=1, random_state=42)  # shuffle row order
+    df["_l"] = df[col]
+    labels_sorted = sorted(df["_l"].unique())
     counts = df["_l"].value_counts().to_dict()
-    for idx, lbl in enumerate(sorted(counts)):
-        mask = df["_l"] == lbl
-        ax.scatter(df.loc[mask,"UMAP1"], df.loc[mask,"UMAP2"],
-                   s=1, c=UMAP_COLORS[idx % len(UMAP_COLORS)],
+    label_to_idx  = {lbl: i for i, lbl in enumerate(labels_sorted)}
+    # Single scatter call — points drawn in shuffled order so no class is always on top
+    point_colors = [UMAP_COLORS[label_to_idx[l] % len(UMAP_COLORS)] for l in df["_l"]]
+    ax.scatter(df["UMAP1"], df["UMAP2"], s=1, c=point_colors, linewidths=0)
+    # Dummy scatters for legend only
+    for i, lbl in enumerate(labels_sorted):
+        ax.scatter([], [], s=8, c=[UMAP_COLORS[i % len(UMAP_COLORS)]],
                    label=f"{lbl} (n={counts[lbl]})")
     ax.set_xlim(-7.5, 20); ax.set_ylim(-7.5, 17.5)
     ax.set_xticks(np.arange(-5,21,5)); ax.set_yticks(np.arange(-5,18,5))
@@ -307,12 +337,11 @@ def plot_umap(ax, df, title, show_legend=True):
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x,_: str(int(x))))
     ax.set_xlabel(""); ax.set_ylabel("")
     ax.set_title(title, fontsize=10)
-    ax.set_aspect("equal", adjustable="box")
     if show_legend:
         ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5),
                   borderaxespad=0., handlelength=1, handletextpad=0,
                   labelspacing=0.5, borderpad=0.2, frameon=True,
-                  framealpha=1, title="Syllable", fontsize=9, markerscale=5)
+                  framealpha=1, title="Syllable", fontsize=9, markerscale=1)
 
 
 # ── Compose figure ────────────────────────────────────────────────────
@@ -329,26 +358,29 @@ def generate_figure5():
     print(f"Loaded results: {len(results)} birds, "
           f"{[len(v) for v in results.values()]} seeds each")
 
-    # ── Grid: 3 rows × 15 cols ─────────────────────────────────────────
-    # 15 cols: 5 loss plots each take 3 cols (full width, centered)
-    #          3-panel rows each take 5 cols (equal thirds)
-    fig = plt.figure(figsize=(15, 18))
-    gs  = fig.add_gridspec(3, 15,
-                           hspace=0.55, wspace=0.52,
-                           height_ratios=[1.0, 1.2, 1.6])
+    # ── Grid: outer 3-rows × 1-col, inner per-row gridspecs ────────────
+    from matplotlib.gridspec import GridSpecFromSubplotSpec
 
-    # Row 0: A — 5 loss small multiples, each 3 cols wide (centered, full width)
-    loss_axes = [fig.add_subplot(gs[0, i*3:(i+1)*3]) for i in range(5)]
+    fig = plt.figure(figsize=(15, 13))
+    # Outer: controls vertical spacing between rows
+    outer = fig.add_gridspec(3, 1, hspace=0.40,
+                             height_ratios=[0.8, 1.0, 1.4])
 
-    # Row 1: B (cols 0–5) | C (cols 5–10) | D (cols 10–15)
-    ax_b = fig.add_subplot(gs[1, 0:5])
-    ax_c = fig.add_subplot(gs[1, 5:10])
-    ax_d = fig.add_subplot(gs[1, 10:15])
+    # Row 0: A — 5 loss subplots
+    gs0 = GridSpecFromSubplotSpec(1, 5, subplot_spec=outer[0], wspace=0.45)
+    loss_axes = [fig.add_subplot(gs0[0, i]) for i in range(5)]
 
-    # Row 2: E (cols 0–5) | F (cols 5–10) | G (cols 10–15)
-    ax_e = fig.add_subplot(gs[2, 0:5])
-    ax_f = fig.add_subplot(gs[2, 5:10])
-    ax_g = fig.add_subplot(gs[2, 10:15])
+    # Row 1: B | C | D  — wspace=0.40 gives ~1.1 in gap between panels
+    gs1 = GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[1], wspace=0.40)
+    ax_b = fig.add_subplot(gs1[0, 0])
+    ax_c = fig.add_subplot(gs1[0, 1])
+    ax_d = fig.add_subplot(gs1[0, 2])
+
+    # Row 2: E | F | G  — same wspace as row 1
+    gs2 = GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[2], wspace=0.40)
+    ax_e = fig.add_subplot(gs2[0, 0])
+    ax_f = fig.add_subplot(gs2[0, 1])
+    ax_g = fig.add_subplot(gs2[0, 2])
 
     # ── Draw all panels ──
     plot_loss_small_multiples(loss_axes, results)
@@ -371,15 +403,15 @@ def generate_figure5():
                     fontsize=8, color="gray")
             ax.set_title(title, fontsize=10)
 
-    # ── Panel labels ──
-    label_kwargs = dict(fontsize=16, fontweight="bold", va="top")
-    fig.text(0.02, 0.985, "A", **label_kwargs)
-    ax_b.text(-0.14, 1.12, "B", transform=ax_b.transAxes, **label_kwargs)
-    ax_c.text(-0.14, 1.12, "C", transform=ax_c.transAxes, **label_kwargs)
-    ax_d.text(-0.14, 1.12, "D", transform=ax_d.transAxes, **label_kwargs)
-    ax_e.text(-0.14, 1.12, "E", transform=ax_e.transAxes, **label_kwargs)
-    ax_f.text(-0.14, 1.12, "F", transform=ax_f.transAxes, **label_kwargs)
-    ax_g.text(-0.14, 1.12, "G", transform=ax_g.transAxes, **label_kwargs)
+    # ── Panel labels — compute actual positions like Figure 4 ──
+    fig.canvas.draw()
+    pad_y = 0.012
+    pad_x = -0.025
+    for ax, letter in [(loss_axes[0], "A"), (ax_b, "B"), (ax_c, "C"), (ax_d, "D"),
+                       (ax_e, "E"), (ax_f, "F"), (ax_g, "G")]:
+        pos = ax.get_position()
+        fig.text(pos.x0 + pad_x, pos.y1 + pad_y, letter,
+                 fontsize=16, fontweight="bold", va="bottom")
 
     for ext in ["svg", "png"]:
         path = os.path.join(OUTPUT_DIR, f"figure5.{ext}")
