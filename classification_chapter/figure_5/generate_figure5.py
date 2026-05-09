@@ -176,8 +176,6 @@ def plot_class_metrics_dots(ax, results):
     ]
     ax.set_yticks(y)
     ax.set_yticklabels([BIRD_LABELS[b] for b in birds])
-    for tick, bird in zip(ax.get_yticklabels(), birds):
-        tick.set_color(BIRD_COLORS[bird])
     ax.set_xlabel("Score")
     ax.set_title("Classification Performance\n(weighted CE, 3 replicates)")
     ax.set_xlim(0.83, 1.02)
@@ -195,7 +193,7 @@ def _sep_scatter(ax, sep_data, metric_key, metric_std_key, ylabel, title):
 
     for i, bird in enumerate(birds):
         color = BIRD_COLORS[bird]
-        ax.scatter([xs[i]], [ys[i]], color=color, s=90, zorder=4,
+        ax.scatter([xs[i]], [ys[i]], color=color, s=50, zorder=4,
                    edgecolors="white", linewidth=0.8, label=BIRD_LABELS[bird])
         ax.errorbar([xs[i]], [ys[i]], yerr=[ye[i]],
                     fmt="none", color=color, linewidth=1.4,
@@ -213,7 +211,7 @@ def _sep_scatter(ax, sep_data, metric_key, metric_std_key, ylabel, title):
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0%}"))
-    ax.legend(fontsize=7, loc="lower right")
+    ax.legend(fontsize=8, loc="lower right")
 
 
 def plot_sep_vs_f1(ax, sep_data):
@@ -276,7 +274,7 @@ def plot_input_duration(ax, sweep):
     ax.set_xlim(LENGTHS_MS[0], LENGTHS_MS[-1] + 1)
     ax.set_ylim(0.40, 1.01)
     ax.set_xticks([10, 20, 30, 40, 50])
-    ax.legend(fontsize=7, loc="lower right")
+    ax.legend(fontsize=8, loc="lower right")
 
 
 # ── Panel C: Confusion matrix from .npy ──────────────────────────────
@@ -300,19 +298,20 @@ def plot_confusion_matrix(ax):
     for i in range(n):
         for j in range(n):
             val = cm_norm[i, j] * 100
-            if val > 1.0:
-                ax.text(j, i, f"{val:.0f}", ha="center", va="center",
-                        fontsize=8,
-                        color="white" if val > 50 else "black")
+            txt = f"{val:.1f}" if val > 0.05 else "0"
+            ax.text(j, i, txt, ha="center", va="center",
+                    fontsize=8,
+                    color="white" if val > 50 else "black")
     ax.set_xticks(range(n)); ax.set_xticklabels(labels, fontsize=8)
     ax.set_yticks(range(n)); ax.set_yticklabels(labels, fontsize=8)
     ax.set_xlabel("Predicted", fontsize=10)
     ax.set_ylabel("True", fontsize=10)
-    ax.set_title("Confusion Matrix\nBird 1 (seed 42)", fontsize=10)
+    ax.set_title("Confusion Matrix — Bird 1, seed 42\n(row-normalized, %)", fontsize=10)
     ax.grid(False)
+    ax.set_aspect("equal", adjustable="box")
 
 
-# ── Panels G & H: UMAP ───────────────────────────────────────────────
+# ── Panels F & G: UMAP ───────────────────────────────────────────────
 
 UMAP_COLORS = ["#1f77b4","#fd7f0e","#2ca02c","#d62728","#9467bd",
                "#8c564b","#e377c2","#7f7f7f","#bcbd22","#1ebecf"]
@@ -331,17 +330,18 @@ def plot_umap(ax, df, title, show_legend=True):
     for i, lbl in enumerate(labels_sorted):
         ax.scatter([], [], s=8, c=[UMAP_COLORS[i % len(UMAP_COLORS)]],
                    label=f"{lbl} (n={counts[lbl]})")
-    ax.set_xlim(-7.5, 20); ax.set_ylim(-7.5, 17.5)
-    ax.set_xticks(np.arange(-5,21,5)); ax.set_yticks(np.arange(-5,18,5))
+    ax.set_xlim(-7.5, 20); ax.set_ylim(-7.5, 20)
+    ax.set_xticks(np.arange(-5,21,5)); ax.set_yticks(np.arange(-5,21,5))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x,_: str(int(x))))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x,_: str(int(x))))
     ax.set_xlabel(""); ax.set_ylabel("")
     ax.set_title(title, fontsize=10)
+    ax.set_aspect("equal", adjustable="box")
     if show_legend:
-        ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5),
+        ax.legend(loc="center right", bbox_to_anchor=(-0.02, 0.5),
                   borderaxespad=0., handlelength=1, handletextpad=0,
                   labelspacing=0.5, borderpad=0.2, frameon=True,
-                  framealpha=1, title="Syllable", fontsize=9, markerscale=1)
+                  framealpha=1, title="Syllable", fontsize=8, markerscale=1)
 
 
 # ── Compose figure ────────────────────────────────────────────────────
@@ -361,10 +361,9 @@ def generate_figure5():
     # ── Grid: outer 3-rows × 1-col, inner per-row gridspecs ────────────
     from matplotlib.gridspec import GridSpecFromSubplotSpec
 
-    fig = plt.figure(figsize=(15, 13))
-    # Outer: controls vertical spacing between rows
-    outer = fig.add_gridspec(3, 1, hspace=0.40,
-                             height_ratios=[0.8, 1.0, 1.4])
+    fig = plt.figure(figsize=(15, 14), layout="constrained")
+    # Outer: constrained_layout manages spacing automatically
+    outer = fig.add_gridspec(3, 1, height_ratios=[0.5, 1.0, 1.0])
 
     # Row 0: A — 5 loss subplots
     gs0 = GridSpecFromSubplotSpec(1, 5, subplot_spec=outer[0], wspace=0.45)

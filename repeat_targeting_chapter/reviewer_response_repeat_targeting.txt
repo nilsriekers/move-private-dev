@@ -1,0 +1,30 @@
+Reviewer comment:
+"For Fig. 7, where the authors target the 4th syllable in a repeat phrase, it is unclear
+how reliably they were able to do this. Some accuracy measures along with false positive
+and false negative proportions would be useful."
+
+---
+
+Response:
+
+We thank the reviewer for this suggestion. To address this concern, we evaluated Moove's
+targeting performance on the 12 recording bouts from which the Fig. 7 example was drawn.
+We ran Moove's full inference pipeline (segmentation → classification → pattern-matching
+trigger rule) on the recorded audio with parameters tuned for this bird, and assessed
+trigger accuracy against manually corrected ground-truth syllable labels. A trigger was
+counted as a true positive if it fell within a 10 ms collar of the ground-truth target
+onset; triggers outside this window were counted as false positives, and undetected target
+phrases as false negatives.
+
+Across the 12 bouts (36 target phrases in total), Moove correctly triggered on 34 phrases
+(precision: 97.1%, recall: 94.4%, F1 = 0.96). There was one false positive and two false
+negatives. Both false negatives arose from the same mechanism: in unusually long repetition
+runs, the first 'a' syllable was classified with low confidence, momentarily breaking the
+required streak of four consecutive 'a' detections and shifting the trigger one syllable
+later — beyond the acceptance collar. The single false positive was a correspondingly
+shifted trigger from the same mechanism. These results demonstrate that Moove reliably
+identifies the target position within repeat phrases.
+
+We have added a quantitative statement to the revised manuscript (see updated Fig. 7
+section) and clarified the caption wording to make the trigger position (a4) and the
+targeted syllable (a5) explicit.
