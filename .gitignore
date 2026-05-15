@@ -13,3 +13,18 @@ venv/
 docs/build/
 docs/guide_raw.rst
 docs/_static/
+
+# Large data/model artifacts removed from history via git-filter-repo
+*.npz
+*.pt
+*.pth
+*.keras
+*.h5
+*.safetensors
+*.onnx
+*.wav
+*.cbin
+*.tfrec
+final_experiments/results/
+classification_chapter/figure_5/real_figure_5/
+new_plots/figure_5/real_figure_5/
