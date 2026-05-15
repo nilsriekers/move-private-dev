@@ -316,8 +316,8 @@ def plot_confusion_matrix(ax):
 UMAP_COLORS = ["#1f77b4","#fd7f0e","#2ca02c","#d62728","#9467bd",
                "#8c564b","#e377c2","#7f7f7f","#bcbd22","#1ebecf"]
 
-def plot_umap(ax, df, title, show_legend=True):
-    col = "Labels" if ("Labels" in df.columns and df["Labels"].nunique() > 1) else "label" if "label" in df.columns else "Labels"
+def plot_umap(ax, df, title, show_legend=True, label_col=None):
+    col = label_col if (label_col and label_col in df.columns) else "label"
     df  = df.copy().sample(frac=1, random_state=42)  # shuffle row order
     df["_l"] = df[col]
     labels_sorted = sorted(df["_l"].unique())
@@ -390,12 +390,12 @@ def generate_figure5():
 
     pkl_30   = os.path.join(CLUSTER_DIR, "your_new_processed_dataset_class.pkl")
     pkl_full = os.path.join(CLUSTER_DIR, "prod_cluster_data_baseline_ml_segmented.pkl")
-    for pkl, ax, title, legend in [
-        (pkl_30,   ax_f, "UMAP — 30 ms after onset (Bird 1)", False),
-        (pkl_full, ax_g, "UMAP — full syllable (Bird 1)",     True),
+    for pkl, ax, title, legend, lcol in [
+        (pkl_30,   ax_f, "UMAP — 30 ms after onset (Bird 1)", False, "label"),
+        (pkl_full, ax_g, "UMAP — full syllable (Bird 1)",     True,  "Labels"),
     ]:
         if os.path.isfile(pkl):
-            plot_umap(ax, pd.read_pickle(pkl), title, show_legend=legend)
+            plot_umap(ax, pd.read_pickle(pkl), title, show_legend=legend, label_col=lcol)
         else:
             ax.text(0.5, 0.5, f"[{os.path.basename(pkl)}\nnot found]",
                     ha="center", va="center", transform=ax.transAxes,
