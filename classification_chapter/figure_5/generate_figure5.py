@@ -152,12 +152,13 @@ def plot_loss_small_multiples(axes, results):
 # ── Panel B: Accuracy + Macro-F1 dot plot ────────────────────────────
 
 def plot_class_metrics_dots(ax, results):
+    """Bird on x-axis, score on y-axis (same orientation as Figure 4B)."""
     birds   = [b for b in BIRD_IDS if b in results]
     metrics = [
         ("test_accuracy",           "Accuracy", "o"),
         ("classification.macro.f1", "Macro-F1", "D"),
     ]
-    y = np.arange(len(birds))
+    x = np.arange(len(birds))
     for i, (key, label, marker) in enumerate(metrics):
         offset = (i - 0.5) * 0.2
         for j, bird in enumerate(birds):
@@ -166,21 +167,21 @@ def plot_class_metrics_dots(ax, results):
                 v = r
                 for p in key.split("."): v = v[p]
                 vals.append(v)
-            ax.errorbar([np.mean(vals)], [y[j] + offset], xerr=[np.std(vals)],
+            ax.errorbar([x[j] + offset], [np.mean(vals)], yerr=[np.std(vals)],
                         fmt=marker, color=BIRD_COLORS[bird],
                         markersize=7, capsize=3, capthick=1.2, linewidth=1.2,
                         markeredgecolor="white", markeredgewidth=0.5)
     legend_handles = [
-        Line2D([0], [0], marker="o", color="gray", linewidth=0, markersize=7, label="Accuracy"),
-        Line2D([0], [0], marker="D", color="gray", linewidth=0, markersize=7, label="Macro-F1"),
+        Line2D([0], [0], marker="o", color="black", linewidth=0, markersize=7, label="Accuracy"),
+        Line2D([0], [0], marker="D", color="black", linewidth=0, markersize=7, label="Macro-F1"),
     ]
-    ax.set_yticks(y)
-    ax.set_yticklabels([BIRD_LABELS[b] for b in birds])
-    ax.set_xlabel("Score")
-    ax.set_title("Classification Performance\n(weighted CE, 3 replicates)")
-    ax.set_xlim(0.83, 1.02)
-    ax.legend(handles=legend_handles, loc="upper left", fontsize=8)
-    ax.invert_yaxis()
+    ax.set_xticks(x)
+    ax.set_xticklabels([BIRD_LABELS[b] for b in birds])
+    ax.set_ylabel("Score")
+    ax.set_ylim(0.83, 1.02)
+    ax.set_xlim(-0.5, len(birds) - 0.5)
+    ax.legend(handles=legend_handles, loc="lower left", fontsize=8,
+              title="Classification", title_fontsize=9, alignment="left")
 
 
 # ── Panel D: Separability vs. macro-F1 ──────────────────────────────
@@ -207,9 +208,8 @@ def _sep_scatter(ax, sep_data, metric_key, metric_std_key, ylabel, title):
               color="k", linestyle="--", linewidth=1.1, alpha=0.55, zorder=1,
               label=f"r={r:.2f}, p={p:.3f}")
 
-    ax.set_xlabel("Mean inter-centroid distance\n(PCA space)")
+    ax.set_xlabel("Separability")
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0%}"))
     ax.legend(fontsize=8, loc="lower right")
 
@@ -269,7 +269,6 @@ def plot_input_duration(ax, sweep):
     ax.axvline(30, color="gray", linewidth=1.0, linestyle=":", alpha=0.7)
     ax.set_xlabel("Input duration (ms)")
     ax.set_ylabel("Test accuracy")
-    ax.set_title("Accuracy vs. Input Duration\n(5 birds, 3 replicates each)", fontsize=10)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0%}"))
     ax.set_xlim(LENGTHS_MS[0], LENGTHS_MS[-1] + 1)
     ax.set_ylim(0.40, 1.01)
@@ -287,7 +286,7 @@ def plot_confusion_matrix(ax):
         ax.text(0.5, 0.5, "confusion_matrix_norm.npy not found",
                 ha="center", va="center", transform=ax.transAxes,
                 fontsize=9, color="gray")
-        ax.set_title("Confusion Matrix\nBird 1 (seed 42)", fontsize=10)
+        ax.set_title("Confusion Matrix, Bird 1 (%)", fontsize=10)
         return
     cm_norm = np.load(npy)
     with open(res) as f:
@@ -306,7 +305,7 @@ def plot_confusion_matrix(ax):
     ax.set_yticks(range(n)); ax.set_yticklabels(labels, fontsize=8)
     ax.set_xlabel("Predicted", fontsize=10)
     ax.set_ylabel("True", fontsize=10)
-    ax.set_title("Confusion Matrix — Bird 1, seed 42\n(row-normalized, %)", fontsize=10)
+    ax.set_title("Confusion Matrix, Bird 1 (%)", fontsize=10)
     ax.grid(False)
     ax.set_aspect("equal", adjustable="box")
 
@@ -334,7 +333,7 @@ def plot_umap(ax, df, title, show_legend=True, label_col=None):
     ax.set_xticks(np.arange(-5,21,5)); ax.set_yticks(np.arange(-5,21,5))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x,_: str(int(x))))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x,_: str(int(x))))
-    ax.set_xlabel(""); ax.set_ylabel("")
+    ax.set_xlabel("UMAP-1"); ax.set_ylabel("UMAP-2")
     ax.set_title(title, fontsize=10)
     ax.set_aspect("equal", adjustable="box")
     if show_legend:
@@ -361,22 +360,26 @@ def generate_figure5():
     # ── Grid: outer 3-rows × 1-col, inner per-row gridspecs ────────────
     from matplotlib.gridspec import GridSpecFromSubplotSpec
 
-    fig = plt.figure(figsize=(15, 14), layout="constrained")
-    # Outer: constrained_layout manages spacing automatically
-    outer = fig.add_gridspec(3, 1, height_ratios=[0.5, 1.0, 1.0])
+    fig = plt.figure(figsize=(15, 15))
+    outer = fig.add_gridspec(
+        3, 1,
+        height_ratios=[1.0, 1.0, 1.3],
+        hspace=0.30,
+        left=0.05, right=0.98, top=0.96, bottom=0.04,
+    )
 
     # Row 0: A — 5 loss subplots
-    gs0 = GridSpecFromSubplotSpec(1, 5, subplot_spec=outer[0], wspace=0.45)
+    gs0 = GridSpecFromSubplotSpec(1, 5, subplot_spec=outer[0], wspace=0.35)
     loss_axes = [fig.add_subplot(gs0[0, i]) for i in range(5)]
 
-    # Row 1: B | C | D  — wspace=0.40 gives ~1.1 in gap between panels
-    gs1 = GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[1], wspace=0.40)
+    # Row 1: B | C | D — tightened wspace
+    gs1 = GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[1], wspace=0.22)
     ax_b = fig.add_subplot(gs1[0, 0])
     ax_c = fig.add_subplot(gs1[0, 1])
     ax_d = fig.add_subplot(gs1[0, 2])
 
-    # Row 2: E | F | G  — same wspace as row 1
-    gs2 = GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[2], wspace=0.40)
+    # Row 2: E | F | G — tighter still, square panels
+    gs2 = GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[2], wspace=0.15)
     ax_e = fig.add_subplot(gs2[0, 0])
     ax_f = fig.add_subplot(gs2[0, 1])
     ax_g = fig.add_subplot(gs2[0, 2])
@@ -391,8 +394,8 @@ def generate_figure5():
     pkl_30   = os.path.join(CLUSTER_DIR, "your_new_processed_dataset_class.pkl")
     pkl_full = os.path.join(CLUSTER_DIR, "prod_cluster_data_baseline_ml_segmented.pkl")
     for pkl, ax, title, legend, lcol in [
-        (pkl_30,   ax_f, "UMAP — 30 ms after onset (Bird 1)", False, "label"),
-        (pkl_full, ax_g, "UMAP — full syllable (Bird 1)",     True,  "Labels"),
+        (pkl_30,   ax_f, "First 30 ms after onset (Bird 1)", False, "label"),
+        (pkl_full, ax_g, "Full syllable (Bird 1)",           True,  "Labels"),
     ]:
         if os.path.isfile(pkl):
             plot_umap(ax, pd.read_pickle(pkl), title, show_legend=legend, label_col=lcol)

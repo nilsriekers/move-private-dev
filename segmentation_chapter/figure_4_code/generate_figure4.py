@@ -183,13 +183,14 @@ def plot_loss_small_multiples(axes, results):
 
 def plot_framewise_dots(ax, results):
     """Dot plot with error bars for framewise P/R/F1 per bird (RAW, no SW).
+    Bird on x-axis, score on y-axis (same orientation as panels C/D).
     Each bird gets its own color; marker shape distinguishes P/R/F1."""
     birds = [b for b in BIRD_IDS if b in results]
     metrics = ["precision", "recall", "f1"]
     metric_labels = ["Precision", "Recall", "F1"]
     metric_markers = ["o", "s", "D"]
 
-    y = np.arange(len(birds))
+    x = np.arange(len(birds))
 
     for j, bird in enumerate(birds):
         color = BIRD_COLORS[bird]
@@ -197,11 +198,10 @@ def plot_framewise_dots(ax, results):
             mean = np.mean([r["framewise"][m] for r in results[bird]])
             std  = np.std([r["framewise"][m] for r in results[bird]])
             offset = (i - 1) * 0.15
-            ax.errorbar([mean], [j + offset], xerr=[std], fmt=mk, color=color,
+            ax.errorbar([j + offset], [mean], yerr=[std], fmt=mk, color=color,
                         markersize=7, capsize=3, capthick=1.2, linewidth=1.2,
                         markeredgecolor="white", markeredgewidth=0.5)
 
-    # Legend: marker shapes for metrics only
     legend_handles = [
         Line2D([0], [0], marker=mk, color="black", linestyle="none",
                markersize=7, markeredgecolor="white", markeredgewidth=0.5,
@@ -209,14 +209,13 @@ def plot_framewise_dots(ax, results):
         for ml, mk in zip(metric_labels, metric_markers)
     ]
 
-    ax.set_yticks(y)
-    ax.set_yticklabels([BIRD_LABELS[b] for b in birds])
-    ax.set_xlabel("Score")
-    ax.set_title("Framewise Segmentation\n(no sliding window)")
-    # ax.set_xlim(0.88, 1.0)  # OLD: narrow range
-    ax.set_xlim(0.7, 1.0)
-    ax.legend(handles=legend_handles, loc="upper left", fontsize=8)
-    ax.invert_yaxis()
+    ax.set_xticks(x)
+    ax.set_xticklabels([BIRD_LABELS[b] for b in birds])
+    ax.set_ylabel("Score")
+    ax.set_ylim(0.4, 1.0)
+    ax.set_xlim(-0.5, len(birds) - 0.5)
+    ax.legend(handles=legend_handles, loc="lower left", fontsize=8,
+              title="Framewise (no SW)", title_fontsize=9, alignment="left")
 
 
 def load_baseline_results():
@@ -237,8 +236,10 @@ def load_baseline_results():
 
 def plot_collar_f1(ax, results, baseline_results=None):
     """Onset-based segment-level F1 vs collar tolerance.
-    Moove: onset_collar_SMOOTHED (with sliding window) — solid lines.
-    Baseline: onset_collar RAW (no SW, not applicable for energy segmenter) — dashed lines.
+    Three conditions per bird:
+      - Moove + sliding window post-processing (solid, onset_collar_smoothed)
+      - Moove raw network output, no sliding window (dashed, onset_collar)
+      - Energy-based baseline (dotted, onset_collar)
     """
     for bird in BIRD_IDS:
         if bird not in results:
@@ -260,7 +261,25 @@ def plot_collar_f1(ax, results, baseline_results=None):
         ax.fill_between(COLLAR_VALUES_MS, means - stds, means + stds,
                         color=color, alpha=0.12)
 
-    # Baseline: raw onset_collar (no SW — not applicable for energy segmenter)
+    for bird in BIRD_IDS:
+        if bird not in results:
+            continue
+        runs = results[bird]
+        color = BIRD_COLORS[bird]
+
+        means, stds = [], []
+        for cms in COLLAR_VALUES_MS:
+            collar_key = f"@{cms}ms"
+            vals = [r["onset_collar"][collar_key]["f1"] for r in runs]
+            means.append(np.mean(vals))
+            stds.append(np.std(vals))
+        means, stds = np.array(means), np.array(stds)
+
+        ax.plot(COLLAR_VALUES_MS, means, "--", color=color,
+                linewidth=1.5, alpha=0.85)
+        ax.fill_between(COLLAR_VALUES_MS, means - stds, means + stds,
+                        color=color, alpha=0.08)
+
     if baseline_results:
         for bird in BIRD_IDS:
             if bird not in baseline_results:
@@ -276,19 +295,16 @@ def plot_collar_f1(ax, results, baseline_results=None):
                 stds.append(np.std(vals))
             means, stds = np.array(means), np.array(stds)
 
-            ax.plot(COLLAR_VALUES_MS, means, "--", color=color,
-                    linewidth=1.2, markersize=0, alpha=0.7)
+            ax.plot(COLLAR_VALUES_MS, means, ":", color=color,
+                    linewidth=1.0, alpha=0.6)
             ax.fill_between(COLLAR_VALUES_MS, means - stds, means + stds,
-                            color=color, alpha=0.07)
+                            color=color, alpha=0.05)
 
     ax.set_xlabel("Collar tolerance (ms)")
     ax.set_ylabel("Onset-based F1")
-    ax.set_title("Onset Collar F1\n(Moove with sliding window vs. Baseline)")
     ax.set_xticks(COLLAR_VALUES_MS)
     ax.set_xlim(COLLAR_VALUES_MS[0], COLLAR_VALUES_MS[-1] + 0.5)
-    # ax.set_ylim(0.1, 1.0)  # OLD: too much empty space below
-    ax.set_ylim(0.5, 1.0)  # baseline @5ms goes down to ~0.53
-    ax.legend(fontsize=8)
+    ax.set_ylim(0.4, 1.0)
 
 
 # ── Panel D: Training duration vs F1 scatter ─────────────────────────
@@ -310,14 +326,12 @@ def plot_duration_vs_f1(ax, results):
 
     ax.set_xlabel("Training set duration (s)")
     ax.set_ylabel("Framewise F1")
-    ax.set_title("Training Data Size vs. Performance")
     if USE_LOG_SCALE:
         ax.set_xscale("log")
         ax.set_xticks([100, 1000])
         ax.xaxis.set_major_formatter(FuncFormatter(
             lambda x, _: f"$10^{{{int(round(math.log10(x)))}}}$" if x > 0 else ""))
-    # OLD: no explicit ylim set
-    ax.set_ylim(0.7, 1.0)
+    ax.set_ylim(0.4, 1.0)
     ax.legend(fontsize=8, loc="lower right")
 
 
@@ -356,10 +370,10 @@ def generate_figure4():
     plot_collar_f1(ax_c, results, baseline_results=baseline_results)
     plot_duration_vs_f1(ax_d, results)
 
-    # Add legend clarifying solid=Moove+SW, dashed=Baseline (raw)
     legend_elements = [
-        Line2D([0], [0], color="black", linewidth=2, linestyle="-", label="Moove (+SW)"),
-        Line2D([0], [0], color="black", linewidth=1.2, linestyle="--", alpha=0.7, label="Baseline (raw)"),
+        Line2D([0], [0], color="black", linewidth=2,   linestyle="-",  label="Moove + sliding window"),
+        Line2D([0], [0], color="black", linewidth=1.5, linestyle="--", label="Moove raw (no SW)"),
+        Line2D([0], [0], color="black", linewidth=1.0, linestyle=":",  alpha=0.8, label="Energy baseline"),
     ]
     ax_c.legend(handles=legend_elements, fontsize=8, loc="lower right")
 
